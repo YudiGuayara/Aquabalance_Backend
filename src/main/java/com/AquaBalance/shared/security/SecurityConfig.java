@@ -18,11 +18,11 @@ import org.springframework.web.cors.CorsConfiguration;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
-    private final AuthenticationProvider authenticationProvider;
+    private final AuthenticationProvider  authenticationProvider;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter,
                           AuthenticationProvider authenticationProvider) {
-        this.jwtAuthFilter = jwtAuthFilter;
+        this.jwtAuthFilter          = jwtAuthFilter;
         this.authenticationProvider = authenticationProvider;
     }
 
@@ -39,16 +39,17 @@ public class SecurityConfig {
                     return config;
                 }))
                 .authorizeHttpRequests(auth -> auth
-                        // Público
                         .requestMatchers("/api/auth/**").permitAll()
-
-                        .requestMatchers("/api/monitoreo/**").hasAnyRole("Administrador", "Operador")
-
-                        .requestMatchers("/api/eventos/**").hasAnyRole("Administrador", "Operador")
-                        .requestMatchers("/api/alertas/**").hasAnyRole("Administrador", "Operador")
-
-                        .requestMatchers("/api/reportes/**").hasRole("Administrador")
-                        // Cualquier otra ruta requiere autenticación
+                        .requestMatchers("/ws/**").permitAll()                 // ✅ WebSocket
+                        .requestMatchers("/api/notificaciones/**").permitAll() // ✅ Notificaciones
+                        .requestMatchers("/api/monitoreo/**")
+                        .hasAnyRole("Administrador", "Operador")
+                        .requestMatchers("/api/eventos/**")
+                        .hasAnyRole("Administrador", "Operador")
+                        .requestMatchers("/api/alertas/**")
+                        .hasAnyRole("Administrador", "Operador")
+                        .requestMatchers("/api/reportes/**")
+                        .hasRole("Administrador")
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
@@ -61,7 +62,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 }

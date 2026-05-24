@@ -2,6 +2,7 @@ package com.AquaBalance.monitoring.infrastructure.persistence;
 
 import com.AquaBalance.monitoring.application.ports.out.MedicionRepositoryPort;
 import com.AquaBalance.monitoring.domain.Medicion;
+import com.AquaBalance.monitoring.domain.MedicionRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
-public class MedicionRepositoryImpl implements MedicionRepositoryPort {
+public class MedicionRepositoryImpl implements MedicionRepository, MedicionRepositoryPort {
 
     private final JpaMedicionRepository jpa;
 

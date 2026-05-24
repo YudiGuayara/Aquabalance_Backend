@@ -1,0 +1,110 @@
+package com.AquaBalance.notifications.infrastructure.email;
+
+import com.AquaBalance.notifications.application.ports.out.NotificacionEmailPort;
+import com.AquaBalance.notifications.domain.Notificacion;
+import jakarta.mail.MessagingException;
+import jakarta.mail.internet.MimeMessage;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Component;
+
+@Component
+public class EmailAdapter implements NotificacionEmailPort {
+
+    private final JavaMailSender mailSender;
+
+    @Value("${spring.mail.username}")
+    private String remitente;
+
+    @Value("${notificacion.email.destinatario}")
+    private String destinatario;
+
+    @Value("${notificacion.email.habilitado:true}")
+    private boolean habilitado;
+
+    public EmailAdapter(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
+    }
+
+    @Override
+    @Async
+    public void enviar(Notificacion notificacion) {
+
+        if (!habilitado) return;
+
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper =
+                    new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(remitente);
+            helper.setTo(destinatario);
+            helper.setSubject("🚨 AquaBalance — " + notificacion.getTitulo());
+            helper.setText(construirHtml(notificacion), true);
+
+            mailSender.send(message);
+            System.out.println("✅ Email enviado: " + notificacion.getTitulo());
+
+        } catch (MessagingException e) {
+            System.err.println("❌ Error enviando email: " + e.getMessage());
+        }
+    }
+
+    private String construirHtml(Notificacion n) {
+
+        String colorNivel = switch (
+                n.getNivel() != null ? n.getNivel().toUpperCase() : "") {
+            case "ALTA"  -> "#e53e3e";
+            case "MEDIA" -> "#dd6b20";
+            case "BAJA"  -> "#38a169";
+            default      -> "#0077b6";
+        };
+
+        return """
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="UTF-8"></head>
+            <body style="font-family:Arial,sans-serif;background:#f7fafc;
+                         padding:0;margin:0">
+              <div style="max-width:560px;margin:32px auto;background:white;
+                          border-radius:12px;overflow:hidden;
+                          box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+                <div style="background:linear-gradient(135deg,#0077b6,#023e8a);
+                            padding:28px 32px">
+                  <h1 style="color:white;margin:0;font-size:20px">
+                    💧 AquaBalance
+                  </h1>
+                  <p style="color:rgba(255,255,255,0.8);margin:6px 0 0;
+                             font-size:13px">
+                    Sistema de Monitoreo Hídrico
+                  </p>
+                </div>
+                <div style="padding:28px 32px">
+                  <div style="display:inline-block;background:%s;color:white;
+                              padding:4px 14px;border-radius:999px;
+                              font-size:12px;font-weight:700;margin-bottom:16px">
+                    %s — %s
+                  </div>
+                  <h2 style="color:#1a3c5e;margin:0 0 12px;font-size:18px">
+                    %s
+                  </h2>
+                  <p style="color:#4a5568;margin:0 0 20px;line-height:1.6">
+                    %s
+                  </p>
+                  <p style="color:#a0aec0;font-size:12px;margin:0">%s</p>
+                </div>
+              </div>
+            </body>
+            </html>
+            """.formatted(
+                colorNivel,
+                n.getTipo(),
+                n.getNivel() != null ? n.getNivel() : "INFO",
+                n.getTitulo(),
+                n.getMensaje(),
+                n.getFecha() != null ? n.getFecha().toString() : ""
+        );
+    }
+}

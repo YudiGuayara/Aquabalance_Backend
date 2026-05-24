@@ -2,6 +2,7 @@ package com.AquaBalance.monitoring.infrastructure.persistence;
 
 import com.AquaBalance.monitoring.application.ports.out.ContaminanteRepositoryPort;
 import com.AquaBalance.monitoring.domain.Contaminante;
+import com.AquaBalance.monitoring.domain.ContaminanteRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
-public class ContaminanteRepositoryImpl implements ContaminanteRepositoryPort {
+public class ContaminanteRepositoryImpl implements ContaminanteRepository, ContaminanteRepositoryPort {
 
     private final JpaContaminanteRepository jpa;
 
@@ -29,7 +30,9 @@ public class ContaminanteRepositoryImpl implements ContaminanteRepositoryPort {
 
     @Override
     public List<Contaminante> listarTodos() {
-        return jpa.findAll().stream().map(this::toDomain).collect(Collectors.toList());
+        return jpa.findAll().stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -38,10 +41,22 @@ public class ContaminanteRepositoryImpl implements ContaminanteRepositoryPort {
     }
 
     private ContaminanteEntity toEntity(Contaminante c) {
-        return new ContaminanteEntity(c.getId(), c.getNombre(), c.getCarga(), c.getNivel(), c.getFuenteOrigen());
+        ContaminanteEntity e = new ContaminanteEntity();
+        e.setId(c.getId());
+        e.setNombre(c.getNombre());
+        e.setCarga(c.getCarga());
+        e.setNivel(c.getNivel());
+        e.setFuenteOrigen(c.getFuenteOrigen());
+        return e;
     }
 
     private Contaminante toDomain(ContaminanteEntity e) {
-        return new Contaminante(e.getId(), e.getNombre(), e.getCarga(), e.getNivel(), e.getFuenteOrigen());
+        Contaminante c = new Contaminante();
+        c.setId(e.getId());
+        c.setNombre(e.getNombre());
+        c.setCarga(e.getCarga());
+        c.setNivel(e.getNivel());
+        c.setFuenteOrigen(e.getFuenteOrigen());
+        return c;
     }
 }

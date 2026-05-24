@@ -2,6 +2,7 @@ package com.AquaBalance.monitoring.infrastructure.persistence;
 
 import com.AquaBalance.monitoring.application.ports.out.RecursoRepositoryPort;
 import com.AquaBalance.monitoring.domain.Recurso;
+import com.AquaBalance.monitoring.domain.RecursoRepository;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -9,7 +10,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Component
-public class RecursoRepositoryImpl implements RecursoRepositoryPort {
+public class RecursoRepositoryImpl implements RecursoRepository, RecursoRepositoryPort {
 
     private final JpaRecursoRepository jpa;
 
@@ -19,8 +20,7 @@ public class RecursoRepositoryImpl implements RecursoRepositoryPort {
 
     @Override
     public Recurso guardar(Recurso recurso) {
-        RecursoEntity entity = toEntity(recurso);
-        return toDomain(jpa.save(entity));
+        return toDomain(jpa.save(toEntity(recurso)));
     }
 
     @Override
@@ -30,7 +30,9 @@ public class RecursoRepositoryImpl implements RecursoRepositoryPort {
 
     @Override
     public List<Recurso> listarTodos() {
-        return jpa.findAll().stream().map(this::toDomain).collect(Collectors.toList());
+        return jpa.findAll().stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -39,10 +41,24 @@ public class RecursoRepositoryImpl implements RecursoRepositoryPort {
     }
 
     private RecursoEntity toEntity(Recurso r) {
-        return new RecursoEntity(r.getId(), r.getNombre(), r.getTipo(), r.getUbicacion(), r.getLatitud(), r.getLongitud());
+        RecursoEntity e = new RecursoEntity();
+        e.setId(r.getId());
+        e.setNombre(r.getNombre());
+        e.setTipo(r.getTipo());
+        e.setUbicacion(r.getUbicacion());
+        e.setLatitud(r.getLatitud());
+        e.setLongitud(r.getLongitud());
+        return e;
     }
 
     private Recurso toDomain(RecursoEntity e) {
-        return new Recurso(e.getId(), e.getNombre(), e.getTipo(), e.getUbicacion(), e.getLatitud(), e.getLongitud());
+        Recurso r = new Recurso();
+        r.setId(e.getId());
+        r.setNombre(e.getNombre());
+        r.setTipo(e.getTipo());
+        r.setUbicacion(e.getUbicacion());
+        r.setLatitud(e.getLatitud());
+        r.setLongitud(e.getLongitud());
+        return r;
     }
 }
