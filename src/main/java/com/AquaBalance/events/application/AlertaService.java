@@ -4,7 +4,7 @@ import com.AquaBalance.events.application.ports.in.GestionarAlertaUseCase;
 import com.AquaBalance.events.application.ports.out.AlertaRepositoryPort;
 import com.AquaBalance.events.domain.Alerta;
 import com.AquaBalance.events.domain.NivelAlerta;
-import com.AquaBalance.notifications.application.NotificacionService;
+import com.AquaBalance.notifications.application.ports.in.GestionarNotificacionUseCase;
 import com.AquaBalance.shared.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
@@ -16,26 +16,34 @@ import java.util.stream.Collectors;
 public class AlertaService implements GestionarAlertaUseCase {
 
     private final AlertaRepositoryPort repositoryPort;
-    private final NotificacionService  notificacionService;
+    private final GestionarNotificacionUseCase notificacionUseCase;
 
     public AlertaService(AlertaRepositoryPort repositoryPort,
-                         NotificacionService notificacionService) {
-        this.repositoryPort      = repositoryPort;
-        this.notificacionService = notificacionService;
+                         GestionarNotificacionUseCase notificacionUseCase) {
+        this.repositoryPort   = repositoryPort;
+        this.notificacionUseCase = notificacionUseCase;
     }
 
     @Override
     public AlertaDTO crear(AlertaDTO dto) {
         dto.setFecha(LocalDateTime.now());
-        AlertaDTO creada = toDTO(repositoryPort.guardar(toEntity(dto)));
+        Alerta guardada = repositoryPort.guardar(toEntity(dto));
 
-        // ✅ Notificar al crear alerta
-        notificacionService.notificarAlerta(
-                creada.getMensaje(),
-                creada.getNivel() != null ? creada.getNivel().name() : "BAJA"
-        );
+        // Mapear NivelAlerta → nivel de notificación (ALTA / MEDIA / BAJA)
+        String nivelNotificacion = mapearNivel(guardada.getNivel());
+        notificacionUseCase.notificarAlerta(guardada.getMensaje(), nivelNotificacion);
 
-        return creada;
+        return toDTO(guardada);
+    }
+
+    @Override
+    public AlertaDTO actualizar(Long id, AlertaDTO dto) {
+        repositoryPort.buscarPorId(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Alerta no encontrada con id: " + id));
+        Alerta alerta = toEntity(dto);
+        alerta.setId(id);
+        return toDTO(repositoryPort.guardar(alerta));
     }
 
     @Override
@@ -68,20 +76,6 @@ public class AlertaService implements GestionarAlertaUseCase {
     }
 
     @Override
-    public AlertaDTO actualizar(Long id, AlertaDTO dto) {
-        Alerta alerta = repositoryPort.buscarPorId(id)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                        "Alerta no encontrada con id: " + id));
-
-        alerta.setNivel(dto.getNivel());
-        alerta.setMensaje(dto.getMensaje());
-        alerta.setIdUsuario(dto.getIdUsuario());
-        alerta.setIdEvento(dto.getIdEvento());
-
-        return toDTO(repositoryPort.guardar(alerta));
-    }
-
-    @Override
     public void eliminar(Long id) {
         repositoryPort.buscarPorId(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -89,17 +83,38 @@ public class AlertaService implements GestionarAlertaUseCase {
         repositoryPort.eliminar(id);
     }
 
+    // ── Mapeo NivelAlerta → String para notificaciones ────────────────────────
+
+    /**
+     * Convierte el enum NivelAlerta al nivel string que usa el sistema
+     * de notificaciones para decidir si envía email (ALTA / MEDIA) o no (BAJA).
+     *
+     *  Roja     → ALTA   → guarda en BD + WebSocket + Email
+     *  Naranja  → ALTA   → guarda en BD + WebSocket + Email
+     *  Amarilla → MEDIA  → guarda en BD + WebSocket + Email
+     *  Verde    → BAJA   → guarda en BD + WebSocket  (sin email)
+     */
+    private String mapearNivel(NivelAlerta nivel) {
+        if (nivel == null) return "BAJA";
+        return switch (nivel) {
+            case Roja     -> "ALTA";
+            case Naranja  -> "ALTA";
+            case Amarilla -> "MEDIA";
+            case Verde    -> "BAJA";
+        };
+    }
+
+    // ── Mappers ───────────────────────────────────────────────────────────────
+
     private Alerta toEntity(AlertaDTO dto) {
         return new Alerta(
                 dto.getId(), dto.getFecha(), dto.getNivel(),
-                dto.getMensaje(), dto.getIdUsuario(), dto.getIdEvento()
-        );
+                dto.getMensaje(), dto.getIdUsuario(), dto.getIdEvento());
     }
 
     private AlertaDTO toDTO(Alerta a) {
         return new AlertaDTO(
                 a.getId(), a.getFecha(), a.getNivel(),
-                a.getMensaje(), a.getIdUsuario(), a.getIdEvento()
-        );
+                a.getMensaje(), a.getIdUsuario(), a.getIdEvento());
     }
 }

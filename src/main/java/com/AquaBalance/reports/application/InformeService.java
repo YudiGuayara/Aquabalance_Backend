@@ -1,5 +1,6 @@
 package com.AquaBalance.reports.application;
 
+import com.AquaBalance.notifications.application.ports.in.GestionarNotificacionUseCase;
 import com.AquaBalance.reports.application.ports.in.GestionarInformeUseCase;
 import com.AquaBalance.reports.application.ports.out.*;
 import com.AquaBalance.reports.domain.Estadisticas;
@@ -16,12 +17,13 @@ import java.util.stream.Collectors;
 @Service
 public class InformeService implements GestionarInformeUseCase {
 
-    private final InformeRepositoryPort    informePort;
-    private final RecursoConsultaPort      recursoPort;
-    private final ContaminanteConsultaPort contaminantePort;
-    private final MedicionConsultaPort     medicionPort;
-    private final EventoConsultaPort       eventoPort;
-    private final AlertaConsultaPort       alertaPort;
+    private final InformeRepositoryPort       informePort;
+    private final RecursoConsultaPort         recursoPort;
+    private final ContaminanteConsultaPort    contaminantePort;
+    private final MedicionConsultaPort        medicionPort;
+    private final EventoConsultaPort          eventoPort;
+    private final AlertaConsultaPort          alertaPort;
+    private final GestionarNotificacionUseCase notificacionUseCase;
 
     public InformeService(
             InformeRepositoryPort informePort,
@@ -29,16 +31,18 @@ public class InformeService implements GestionarInformeUseCase {
             ContaminanteConsultaPort contaminantePort,
             MedicionConsultaPort medicionPort,
             EventoConsultaPort eventoPort,
-            AlertaConsultaPort alertaPort) {
-        this.informePort      = informePort;
-        this.recursoPort      = recursoPort;
-        this.contaminantePort = contaminantePort;
-        this.medicionPort     = medicionPort;
-        this.eventoPort       = eventoPort;
-        this.alertaPort       = alertaPort;
+            AlertaConsultaPort alertaPort,
+            GestionarNotificacionUseCase notificacionUseCase) {
+        this.informePort         = informePort;
+        this.recursoPort         = recursoPort;
+        this.contaminantePort    = contaminantePort;
+        this.medicionPort        = medicionPort;
+        this.eventoPort          = eventoPort;
+        this.alertaPort          = alertaPort;
+        this.notificacionUseCase = notificacionUseCase;
     }
 
-    // ─── CREAR ───────────────────────────────────────────────
+    // ── Crear ─────────────────────────────────────────────────────────────────
 
     @Override
     @Transactional
@@ -46,10 +50,16 @@ public class InformeService implements GestionarInformeUseCase {
         validarFechas(informe.getFechaInicio(), informe.getFechaFin());
         validarExistencia(informe.getRecursoId(), informe.getContaminanteId());
         informe.setFechaGeneracion(LocalDateTime.now());
-        return informePort.save(informe);
+
+        Informe guardado = informePort.save(informe);
+
+        // Notificar generación del informe
+        notificacionUseCase.notificarInforme(guardado.getTitulo());
+
+        return guardado;
     }
 
-    // ─── OBTENER CON ESTADÍSTICAS ────────────────────────────
+    // ── Obtener con estadísticas ──────────────────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
@@ -67,10 +77,13 @@ public class InformeService implements GestionarInformeUseCase {
                 informe.getFechaInicio(), informe.getFechaFin()
         );
 
+        // Alertar si las estadísticas muestran valores críticos
+        evaluarEstadisticasCriticas(informe.getTitulo(), nombreRecurso, stats);
+
         return new InformeDetalle(informe, nombreRecurso, nombreContaminante, stats);
     }
 
-    // ─── LISTAR ──────────────────────────────────────────────
+    // ── Listar ────────────────────────────────────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
@@ -84,7 +97,7 @@ public class InformeService implements GestionarInformeUseCase {
                 .collect(Collectors.toList());
     }
 
-    // ─── ACTUALIZAR ──────────────────────────────────────────
+    // ── Actualizar ────────────────────────────────────────────────────────────
 
     @Override
     @Transactional
@@ -102,10 +115,15 @@ public class InformeService implements GestionarInformeUseCase {
         existente.setRecursoId(nuevo.getRecursoId());
         existente.setContaminanteId(nuevo.getContaminanteId());
 
-        return informePort.save(existente);
+        Informe actualizado = informePort.save(existente);
+
+        // Notificar actualización del informe
+        notificacionUseCase.notificarInforme("(Actualizado) " + actualizado.getTitulo());
+
+        return actualizado;
     }
 
-    // ─── ELIMINAR ────────────────────────────────────────────
+    // ── Eliminar ──────────────────────────────────────────────────────────────
 
     @Override
     @Transactional
@@ -115,7 +133,50 @@ public class InformeService implements GestionarInformeUseCase {
         informePort.deleteById(id);
     }
 
-    // ─── CÁLCULO DE ESTADÍSTICAS (lógica de coordinación) ───
+    // ── Evaluación de estadísticas críticas ───────────────────────────────────
+
+    /**
+     * Si las estadísticas calculadas revelan valores fuera de rango se dispara
+     * una alerta adicional de nivel ALTA o MEDIA para que el equipo lo revise.
+     */
+    private void evaluarEstadisticasCriticas(String tituloInforme,
+                                             String nombreRecurso,
+                                             Estadisticas stats) {
+        // pH mínimo crítico
+        if (stats.getPhMinimo() != null && stats.getPhMinimo() < 5.0) {
+            notificacionUseCase.notificarAlerta(
+                    String.format("Informe '%s' — pH mínimo crítico detectado en %s: %.2f",
+                            tituloInforme, nombreRecurso, stats.getPhMinimo()),
+                    "ALTA"
+            );
+        }
+        // pH máximo crítico
+        if (stats.getPhMaximo() != null && stats.getPhMaximo() > 9.0) {
+            notificacionUseCase.notificarAlerta(
+                    String.format("Informe '%s' — pH máximo crítico detectado en %s: %.2f",
+                            tituloInforme, nombreRecurso, stats.getPhMaximo()),
+                    "ALTA"
+            );
+        }
+        // Temperatura máxima crítica
+        if (stats.getTemperaturaMaxima() != null && stats.getTemperaturaMaxima() > 35.0) {
+            notificacionUseCase.notificarAlerta(
+                    String.format("Informe '%s' — Temperatura máxima crítica en %s: %.1f °C",
+                            tituloInforme, nombreRecurso, stats.getTemperaturaMaxima()),
+                    "ALTA"
+            );
+        }
+        // Muchas alertas en el periodo
+        if (stats.getTotalAlertas() != null && stats.getTotalAlertas() >= 5) {
+            notificacionUseCase.notificarAlerta(
+                    String.format("Informe '%s' — %d alertas registradas en el período analizado en %s",
+                            tituloInforme, stats.getTotalAlertas(), nombreRecurso),
+                    "MEDIA"
+            );
+        }
+    }
+
+    // ── Cálculo de estadísticas ───────────────────────────────────────────────
 
     private Estadisticas calcularEstadisticas(Long recursoId, Long contaminanteId,
                                               LocalDateTime inicio, LocalDateTime fin) {
@@ -170,7 +231,7 @@ public class InformeService implements GestionarInformeUseCase {
         return stats;
     }
 
-    // ─── VALIDACIONES ────────────────────────────────────────
+    // ── Validaciones ──────────────────────────────────────────────────────────
 
     private void validarFechas(LocalDateTime inicio, LocalDateTime fin) {
         if (inicio == null || fin == null)

@@ -7,6 +7,7 @@ import com.AquaBalance.monitoring.application.ports.out.RecursoRepositoryPort;
 import com.AquaBalance.monitoring.domain.Contaminante;
 import com.AquaBalance.monitoring.domain.Medicion;
 import com.AquaBalance.monitoring.domain.Recurso;
+import com.AquaBalance.notifications.application.ports.in.GestionarNotificacionUseCase;
 import com.AquaBalance.shared.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,25 +20,56 @@ import java.util.stream.Collectors;
 @Transactional
 public class MedicionService implements RegistrarMedicionUseCase {
 
-    private final MedicionRepositoryPort repositoryPort;
-    private final RecursoRepositoryPort recursoRepository;
-    private final ContaminanteRepositoryPort contaminanteRepository;
+    // ── Umbrales de alerta ────────────────────────────────────────────────────
+    private static final double PH_CRITICO_MIN     = 5.0;
+    private static final double PH_CRITICO_MAX     = 9.0;
+    private static final double PH_ADVERTENCIA_MIN = 6.0;
+    private static final double PH_ADVERTENCIA_MAX = 8.5;
+    private static final double TEMP_CRITICA_MAX   = 35.0;
+    private static final double TEMP_ADVERTENCIA_MAX = 30.0;
+
+    private final MedicionRepositoryPort       repositoryPort;
+    private final RecursoRepositoryPort        recursoRepository;
+    private final ContaminanteRepositoryPort   contaminanteRepository;
+    private final GestionarNotificacionUseCase notificacionUseCase;
 
     public MedicionService(MedicionRepositoryPort repositoryPort,
                            RecursoRepositoryPort recursoRepository,
-                           ContaminanteRepositoryPort contaminanteRepository) {
-        this.repositoryPort = repositoryPort;
-        this.recursoRepository = recursoRepository;
+                           ContaminanteRepositoryPort contaminanteRepository,
+                           GestionarNotificacionUseCase notificacionUseCase) {
+        this.repositoryPort       = repositoryPort;
+        this.recursoRepository    = recursoRepository;
         this.contaminanteRepository = contaminanteRepository;
+        this.notificacionUseCase  = notificacionUseCase;
     }
+
+    // ── Registrar ─────────────────────────────────────────────────────────────
 
     @Override
     public MedicionDTO registrar(MedicionDTO dto) {
         validarMedicion(dto);
         dto.setFecha(LocalDateTime.now());
+
         Medicion guardada = repositoryPort.guardar(toEntity(dto));
-        return enrichDTO(toDTO(guardada));
+        MedicionDTO resultado = enrichDTO(toDTO(guardada));
+
+        // Notificación de medición registrada (siempre, nivel BAJA)
+        notificacionUseCase.notificarMedicion(
+                resultado.getNombreRecurso(),
+                resultado.getNombreContaminante(),
+                resultado.getPh()
+        );
+
+        // Alertas por pH fuera de rango
+        evaluarAlertaPh(resultado);
+
+        // Alertas por temperatura fuera de rango
+        evaluarAlertaTemperatura(resultado);
+
+        return resultado;
     }
+
+    // ── Consultas ─────────────────────────────────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
@@ -66,13 +98,7 @@ public class MedicionService implements RegistrarMedicionUseCase {
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public void eliminar(Long id) {
-        repositoryPort.buscarPorId(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Medicion no encontrada con id: " + id));
-        repositoryPort.eliminar(id);
-    }
+    // ── Actualizar ────────────────────────────────────────────────────────────
 
     @Override
     public MedicionDTO actualizar(Long id, MedicionDTO dto) {
@@ -86,8 +112,73 @@ public class MedicionService implements RegistrarMedicionUseCase {
         existente.setIdContaminante(dto.getIdContaminante());
         existente.setIdUsuario(dto.getIdUsuario());
 
-        return enrichDTO(toDTO(repositoryPort.guardar(existente)));
+        MedicionDTO resultado = enrichDTO(toDTO(repositoryPort.guardar(existente)));
+
+        // Re-evaluar alertas al actualizar
+        evaluarAlertaPh(resultado);
+        evaluarAlertaTemperatura(resultado);
+
+        return resultado;
     }
+
+    // ── Eliminar ──────────────────────────────────────────────────────────────
+
+    @Override
+    public void eliminar(Long id) {
+        repositoryPort.buscarPorId(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Medicion no encontrada con id: " + id));
+        repositoryPort.eliminar(id);
+    }
+
+    // ── Lógica de alertas ─────────────────────────────────────────────────────
+
+    private void evaluarAlertaPh(MedicionDTO dto) {
+        if (dto.getPh() == null) return;
+
+        double ph = dto.getPh();
+        String recurso = dto.getNombreRecurso();
+        String cont    = dto.getNombreContaminante();
+
+        if (ph < PH_CRITICO_MIN || ph > PH_CRITICO_MAX) {
+            notificacionUseCase.notificarAlerta(
+                    String.format("pH CRÍTICO en %s — Contaminante: %s | pH: %.2f " +
+                                    "(rango seguro: %.1f–%.1f)",
+                            recurso, cont, ph, PH_CRITICO_MIN, PH_CRITICO_MAX),
+                    "ALTA"
+            );
+        } else if (ph < PH_ADVERTENCIA_MIN || ph > PH_ADVERTENCIA_MAX) {
+            notificacionUseCase.notificarAlerta(
+                    String.format("pH fuera del rango óptimo en %s — Contaminante: %s | pH: %.2f " +
+                                    "(óptimo: %.1f–%.1f)",
+                            recurso, cont, ph, PH_ADVERTENCIA_MIN, PH_ADVERTENCIA_MAX),
+                    "MEDIA"
+            );
+        }
+    }
+
+    private void evaluarAlertaTemperatura(MedicionDTO dto) {
+        if (dto.getTemperatura() == null) return;
+
+        double temp  = dto.getTemperatura();
+        String recurso = dto.getNombreRecurso();
+
+        if (temp > TEMP_CRITICA_MAX) {
+            notificacionUseCase.notificarAlerta(
+                    String.format("Temperatura CRÍTICA en %s | %.1f °C (máximo seguro: %.1f °C)",
+                            recurso, temp, TEMP_CRITICA_MAX),
+                    "ALTA"
+            );
+        } else if (temp > TEMP_ADVERTENCIA_MAX) {
+            notificacionUseCase.notificarAlerta(
+                    String.format("Temperatura elevada en %s | %.1f °C (óptimo: ≤ %.1f °C)",
+                            recurso, temp, TEMP_ADVERTENCIA_MAX),
+                    "MEDIA"
+            );
+        }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private MedicionDTO enrichDTO(MedicionDTO dto) {
         String nombreRecurso = recursoRepository.buscarPorId(dto.getIdRecurso())

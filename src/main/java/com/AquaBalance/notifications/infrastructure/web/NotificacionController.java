@@ -41,4 +41,10 @@ public class NotificacionController {
         useCase.marcarLeida(id);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/test")
+    public ResponseEntity<Void> enviarPrueba(@RequestBody Notificacion notificacion) {
+        useCase.notificar(notificacion);
+        return ResponseEntity.ok().build();
+    }
 }

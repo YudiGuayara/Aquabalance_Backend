@@ -4,50 +4,56 @@ import com.AquaBalance.notifications.application.ports.in.GestionarNotificacionU
 import com.AquaBalance.notifications.application.ports.out.NotificacionEmailPort;
 import com.AquaBalance.notifications.application.ports.out.NotificacionMessagingPort;
 import com.AquaBalance.notifications.domain.Notificacion;
+import com.AquaBalance.notifications.infrastructure.persistence.NotificacionEntity;
+import com.AquaBalance.notifications.infrastructure.persistence.NotificacionRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Collections;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 @Service
 public class NotificacionService implements GestionarNotificacionUseCase {
 
     private final NotificacionMessagingPort messagingPort;
     private final NotificacionEmailPort     emailPort;
-
-    private final List<Notificacion> historial =
-            Collections.synchronizedList(new ArrayList<>());
-    private final AtomicLong contador = new AtomicLong(1);
+    private final NotificacionRepository    repository;
 
     public NotificacionService(NotificacionMessagingPort messagingPort,
-                               NotificacionEmailPort emailPort) {
+                               NotificacionEmailPort emailPort,
+                               NotificacionRepository repository) {
         this.messagingPort = messagingPort;
         this.emailPort     = emailPort;
+        this.repository    = repository;
     }
 
+    // ── Notificar ─────────────────────────────────────────────────────────────
+
     @Override
+    @Transactional
     public void notificar(Notificacion notificacion) {
+        // 1. Guardar en BD
+        NotificacionEntity entity = toEntity(notificacion);
+        entity = repository.save(entity);
+        notificacion.setId(entity.getId());
+        notificacion.setLeida(false);
 
-        notificacion.setId(contador.getAndIncrement());
-
-        historial.add(0, notificacion);
-        if (historial.size() > 50) {
-            historial.remove(historial.size() - 1);
-        }
-
-        // Enviar por WebSocket
+        // 2. Enviar por WebSocket (siempre)
         messagingPort.enviar(notificacion);
 
-        // Enviar email solo si ALTA o MEDIA
+        // 3. Email solo si nivel es ALTA o MEDIA
         String nivel = notificacion.getNivel();
+        System.out.println("🔔 Notificación guardada: " + notificacion.getTitulo()
+                + " | Nivel: " + nivel);
+
         if (nivel != null &&
                 (nivel.equalsIgnoreCase("ALTA") || nivel.equalsIgnoreCase("MEDIA"))) {
+            System.out.println("📤 Enviando email para nivel: " + nivel);
             emailPort.enviar(notificacion);
+        } else {
+            System.out.println("⏭️  Nivel '" + nivel + "' no requiere email.");
         }
-
-        System.out.println("🔔 Notificación enviada: " + notificacion.getTitulo());
     }
 
     @Override
@@ -56,8 +62,7 @@ public class NotificacionService implements GestionarNotificacionUseCase {
                 "ALERTA",
                 "Nueva alerta — Nivel " + nivel,
                 mensaje,
-                nivel
-        ));
+                nivel));
     }
 
     @Override
@@ -66,8 +71,7 @@ public class NotificacionService implements GestionarNotificacionUseCase {
                 "INFORME",
                 "Informe generado",
                 "Se ha generado el informe: " + tituloInforme,
-                "INFO"
-        ));
+                "INFO"));
     }
 
     @Override
@@ -76,30 +80,65 @@ public class NotificacionService implements GestionarNotificacionUseCase {
                 "MEDICION",
                 "Medición registrada — " + recurso,
                 "Contaminante: " + contaminante + " | Valor: " + valor,
-                "BAJA"
-        ));
+                "BAJA"));
     }
 
+    // ── Consultas ─────────────────────────────────────────────────────────────
+
     @Override
+    @Transactional(readOnly = true)
     public List<Notificacion> obtenerHistorial() {
-        return Collections.unmodifiableList(historial);
+        return repository.findTop50ByOrderByFechaDesc()
+                .stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
     public long contarNoLeidas() {
-        return historial.stream().filter(n -> !n.isLeida()).count();
+        return repository.countByLeidaFalse();
     }
 
+    // ── Marcar leídas ─────────────────────────────────────────────────────────
+
     @Override
+    @Transactional
     public void marcarTodasLeidas() {
-        historial.forEach(n -> n.setLeida(true));
+        repository.marcarTodasLeidas();
     }
 
     @Override
+    @Transactional
     public void marcarLeida(Long id) {
-        historial.stream()
-                .filter(n -> n.getId().equals(id))
-                .findFirst()
-                .ifPresent(n -> n.setLeida(true));
+        repository.findById(id).ifPresent(n -> {
+            n.setLeida(true);
+            repository.save(n);
+        });
+    }
+
+    // ── Mappers ───────────────────────────────────────────────────────────────
+
+    private NotificacionEntity toEntity(Notificacion n) {
+        NotificacionEntity e = new NotificacionEntity();
+        e.setTipo(n.getTipo());
+        e.setTitulo(n.getTitulo());
+        e.setMensaje(n.getMensaje());
+        e.setNivel(n.getNivel());
+        e.setLeida(false);
+        e.setFecha(n.getFecha() != null ? n.getFecha() : LocalDateTime.now());
+        return e;
+    }
+
+    private Notificacion toDomain(NotificacionEntity e) {
+        Notificacion n = new Notificacion();
+        n.setId(e.getId());
+        n.setTipo(e.getTipo());
+        n.setTitulo(e.getTitulo());
+        n.setMensaje(e.getMensaje());
+        n.setNivel(e.getNivel());
+        n.setLeida(e.isLeida());
+        n.setFecha(e.getFecha());
+        return n;
     }
 }

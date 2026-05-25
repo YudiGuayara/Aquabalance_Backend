@@ -24,16 +24,41 @@ public class MedicionConsultaAdapter implements MedicionConsultaPort {
         this.contaminanteRepository = contaminanteRepository;
     }
 
-    // ── Filtro base reutilizable ─────────────────────────────
-
     private List<Medicion> filtrar(Long recursoId, Long contaminanteId,
                                    LocalDateTime inicio, LocalDateTime fin) {
-        return medicionRepository.listarTodos().stream()
+
+        List<Medicion> todas = medicionRepository.listarTodos();
+
+        System.out.println("=== FILTRO MEDICIONES ===");
+        System.out.println("Buscando recursoId=" + recursoId + " contaminanteId=" + contaminanteId);
+        System.out.println("Período: " + inicio + " → " + fin);
+        System.out.println("Total mediciones en BD: " + todas.size());
+
+        todas.forEach(m -> System.out.println(
+                "  ID=" + m.getId() +
+                        " recursoId=" + m.getIdRecurso() +
+                        " (tipo=" + (m.getIdRecurso() != null ? m.getIdRecurso().getClass().getSimpleName() : "null") + ")" +
+                        " contaminanteId=" + m.getIdContaminante() +
+                        " (tipo=" + (m.getIdContaminante() != null ? m.getIdContaminante().getClass().getSimpleName() : "null") + ")" +
+                        " fecha=" + m.getFecha() +
+                        " match_recurso=" + recursoId.equals(m.getIdRecurso()) +
+                        " match_contaminante=" + contaminanteId.equals(m.getIdContaminante()) +
+                        " match_fecha=" + (m.getFecha() != null &&
+                        !m.getFecha().isBefore(inicio) &&
+                        !m.getFecha().isAfter(fin))
+        ));
+
+        List<Medicion> resultado = todas.stream()
                 .filter(m -> recursoId.equals(m.getIdRecurso()))
                 .filter(m -> contaminanteId.equals(m.getIdContaminante()))
                 .filter(m -> m.getFecha() != null)
                 .filter(m -> !m.getFecha().isBefore(inicio) && !m.getFecha().isAfter(fin))
                 .collect(Collectors.toList());
+
+        System.out.println("Mediciones que pasaron el filtro: " + resultado.size());
+        System.out.println("========================");
+
+        return resultado;
     }
 
     @Override

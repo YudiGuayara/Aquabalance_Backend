@@ -32,7 +32,14 @@ public class EmailAdapter implements NotificacionEmailPort {
     @Async
     public void enviar(Notificacion notificacion) {
 
-        if (!habilitado) return;
+        System.out.println("📧 EmailAdapter.enviar() — habilitado=" + habilitado
+                + " | destinatario=" + destinatario
+                + " | nivel=" + notificacion.getNivel());
+
+        if (!habilitado) {
+            System.out.println("⚠️  Email deshabilitado en configuración.");
+            return;
+        }
 
         try {
             MimeMessage message = mailSender.createMimeMessage();
@@ -45,21 +52,25 @@ public class EmailAdapter implements NotificacionEmailPort {
             helper.setText(construirHtml(notificacion), true);
 
             mailSender.send(message);
-            System.out.println("✅ Email enviado: " + notificacion.getTitulo());
+            System.out.println("✅ Email enviado exitosamente: "
+                    + notificacion.getTitulo());
 
         } catch (MessagingException e) {
+            e.printStackTrace();
             System.err.println("❌ Error enviando email: " + e.getMessage());
         }
     }
+
+    // ── HTML ──────────────────────────────────────────────────────────────────
 
     private String construirHtml(Notificacion n) {
 
         String colorNivel = switch (
                 n.getNivel() != null ? n.getNivel().toUpperCase() : "") {
-            case "ALTA"  -> "#e53e3e";
-            case "MEDIA" -> "#dd6b20";
-            case "BAJA"  -> "#38a169";
-            default      -> "#0077b6";
+            case "ALTA"  -> "#e53e3e";   // rojo
+            case "MEDIA" -> "#dd6b20";   // naranja
+            case "BAJA"  -> "#38a169";   // verde
+            default      -> "#0077b6";   // azul (INFO)
         };
 
         return """
