@@ -12,7 +12,10 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-public class UserService implements RegistrarUsuarioUseCase, BuscarUsuarioUseCase, GestionarUsuarioUseCase {
+public class UserService implements
+        RegistrarUsuarioUseCase,
+        BuscarUsuarioUseCase,
+        GestionarUsuarioUseCase {
 
     private final UsuarioRepository usuarioRepository;
 
@@ -20,29 +23,57 @@ public class UserService implements RegistrarUsuarioUseCase, BuscarUsuarioUseCas
         this.usuarioRepository = usuarioRepository;
     }
 
+    // ── RegistrarUsuarioUseCase ───────────────────────────────
+
     @Override
     public Usuario registrar(Usuario usuario) {
         if (usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
-            throw new BusinessException("El correo electrónico ya está registrado en el sistema.");
+            throw new BusinessException(
+                    "El correo electrónico ya está registrado en el sistema.");
         }
         return usuarioRepository.save(usuario);
     }
 
+    // ── BuscarUsuarioUseCase ──────────────────────────────────
+
     @Override
     public Usuario buscarPorId(Long id) {
         return usuarioRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Usuario no encontrado con ID: " + id));
     }
 
     @Override
     public Usuario buscarPorEmail(String email) {
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con el correo: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Usuario no encontrado con el correo: " + email));
     }
 
     @Override
     public List<Usuario> listarActivos() {
         return usuarioRepository.findAllActivos();
+    }
+
+    // ── GestionarUsuarioUseCase ───────────────────────────────
+
+    @Override
+    public List<Usuario> listarTodos() {
+        return usuarioRepository.findAll();
+    }
+
+    @Override
+    public Usuario actualizar(Long id, Usuario nuevo) {
+        Usuario existente = buscarPorId(id);
+        existente.setNombre(nuevo.getNombre());
+        existente.setEmail(nuevo.getEmail());
+        existente.setRol(nuevo.getRol());
+        if (nuevo.getPassword() != null && !nuevo.getPassword().isBlank()) {
+            existente.setPassword(nuevo.getPassword());
+        }
+        if (nuevo.isActivo()) existente.activar();
+        else                  existente.desactivar();
+        return usuarioRepository.save(existente);
     }
 
     @Override

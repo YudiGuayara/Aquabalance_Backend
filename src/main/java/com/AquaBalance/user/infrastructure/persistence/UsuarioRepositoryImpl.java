@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-// ¡ESTA ANOTACIÓN ES LA CLAVE!
-// Le dice a Spring "Aquí está la implementación del repositorio que el UserService estaba pidiendo".
 @Repository
 public class UsuarioRepositoryImpl implements UsuarioRepository {
 
@@ -21,11 +19,8 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
 
     @Override
     public Usuario save(Usuario usuario) {
-        // 1. Convertimos el objeto de Dominio a objeto de Base de Datos (Entidad)
-        UsuarioEntity entity = toEntity(usuario);
-        // 2. Guardamos en la base de datos
+        UsuarioEntity entity      = toEntity(usuario);
         UsuarioEntity savedEntity = jpaRepository.save(entity);
-        // 3. Devolvemos el objeto convertido de vuelta a Dominio
         return toDomain(savedEntity);
     }
 
@@ -41,13 +36,21 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
 
     @Override
     public List<Usuario> findAllActivos() {
-        return jpaRepository.findByActivoTrue().stream()
+        return jpaRepository.findByActivoTrue()
+                .stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
     }
 
-    // --- MÉTODOS AUXILIARES PARA MAPEAR (Convertir) ---
-    // Pasan los datos de la clase del Dominio a la clase de la Base de Datos y viceversa
+    @Override                                        // ← NUEVO
+    public List<Usuario> findAll() {
+        return jpaRepository.findAll()
+                .stream()
+                .map(this::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    // ── Mappers ───────────────────────────────────────────────
 
     private UsuarioEntity toEntity(Usuario domain) {
         return new UsuarioEntity(
@@ -69,10 +72,7 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
                 entity.getPassword(),
                 entity.getRol()
         );
-        // Seteamos los campos adicionales
-        if (!entity.isActivo()) {
-            usuario.desactivar();
-        }
+        if (!entity.isActivo()) usuario.desactivar();
         usuario.setFechaCreacion(entity.getFechaCreacion());
         return usuario;
     }

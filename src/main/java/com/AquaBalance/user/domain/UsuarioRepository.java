@@ -8,5 +8,8 @@ public interface UsuarioRepository {
     Usuario save(Usuario usuario);
     Optional<Usuario> findById(Long id);
     Optional<Usuario> findByEmail(String email);
-    List<Usuario> findAllActivos(); }
+    List<Usuario> findAllActivos();
+    List<Usuario>     findAll();
+
+}
 
