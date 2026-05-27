@@ -31,7 +31,7 @@ public class NotificacionService implements GestionarNotificacionUseCase {
     // ── Notificar ─────────────────────────────────────────────────────────────
 
     @Override
-    @Transactional
+    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
     public void notificar(Notificacion notificacion) {
         // 1. Guardar en BD
         NotificacionEntity entity = toEntity(notificacion);
