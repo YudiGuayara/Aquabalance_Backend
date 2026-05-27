@@ -42,14 +42,8 @@ public class SecurityConfig {
                             "https://cerulean-kitten-f5af4b.netlify.app"
                     ));
                     config.setAllowedMethods(List.of(
-                            "GET",
-                            "POST",
-                            "PUT",
-                            "PATCH",
-                            "DELETE",
-                            "OPTIONS"
+                            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
                     ));
-
                     config.setAllowedHeaders(List.of("*"));
                     config.setAllowCredentials(true);
 
@@ -62,35 +56,26 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // AUTH
                         .requestMatchers("/api/auth/**").permitAll()
-
-                        // USUARIOS
                         .requestMatchers("/api/usuarios/**").permitAll()
-
-                        // WEBSOCKET
                         .requestMatchers("/ws/**").permitAll()
-
-                        // NOTIFICACIONES
                         .requestMatchers("/api/notificaciones/**").permitAll()
 
-                        // MONITOREO
                         .requestMatchers("/api/monitoreo/**")
-                        .hasAnyRole("Administrador", "Operador")
+                        .hasAnyAuthority("Administrador", "Operador")
 
-                        // EVENTOS
                         .requestMatchers("/api/eventos/**")
-                        .hasAnyRole("Administrador", "Operador")
+                        .hasAnyAuthority("Administrador", "Operador")
 
-                        // ALERTAS
                         .requestMatchers("/api/alertas/**")
-                        .hasAnyRole("Administrador", "Operador")
+                        .hasAnyAuthority("Administrador", "Operador")
 
-                        // REPORTES
+                        .requestMatchers("/api/informes/**")
+                        .hasAnyAuthority("Administrador", "Operador")
+
                         .requestMatchers("/api/reportes/**")
-                        .hasRole("Administrador")
+                        .hasAuthority("Administrador")
 
-                        // TODO LO DEMÁS
                         .anyRequest().authenticated()
                 )
 
