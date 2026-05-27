@@ -62,19 +62,19 @@ public class SecurityConfig {
                         .requestMatchers("/api/notificaciones/**").permitAll()
 
                         .requestMatchers("/api/monitoreo/**")
-                        .hasAnyAuthority("Administrador", "Operador")
+                        .hasAnyRole("Administrador", "Operador")
 
                         .requestMatchers("/api/eventos/**")
-                        .hasAnyAuthority("Administrador", "Operador")
+                        .hasAnyRole("Administrador", "Operador")
 
                         .requestMatchers("/api/alertas/**")
-                        .hasAnyAuthority("Administrador", "Operador")
+                        .hasAnyRole("Administrador", "Operador")
 
                         .requestMatchers("/api/informes/**")
-                        .hasAnyAuthority("Administrador", "Operador")
+                        .hasAnyRole("Administrador", "Operador")
 
                         .requestMatchers("/api/reportes/**")
-                        .hasAuthority("Administrador")
+                        .hasRole("Administrador")
 
                         .anyRequest().authenticated()
                 )
