@@ -8,6 +8,7 @@ import com.AquaBalance.notifications.infrastructure.persistence.NotificacionEnti
 import com.AquaBalance.notifications.infrastructure.persistence.NotificacionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,7 +32,7 @@ public class NotificacionService implements GestionarNotificacionUseCase {
     // ── Notificar ─────────────────────────────────────────────────────────────
 
     @Override
-    @Transactional(propagation = org.springframework.transaction.annotation.Propagation.REQUIRES_NEW)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void notificar(Notificacion notificacion) {
         // 1. Guardar en BD
         NotificacionEntity entity = toEntity(notificacion);
