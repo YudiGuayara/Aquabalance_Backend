@@ -4,9 +4,8 @@ import com.AquaBalance.user.domain.Rol;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-// @Entity le dice a Spring que esta clase es una tabla en la base de datos
 @Entity
-@Table(name = "usuarios") // El nombre de la tabla en tu base de datos
+@Table(name = "usuarios")
 public class UsuarioEntity {
 
     @Id
@@ -22,7 +21,6 @@ public class UsuarioEntity {
     @Column(nullable = false)
     private String password;
 
-    // Guardamos el enum como texto (ADMINISTRADOR, AGRICULTOR, etc.) y no como número
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Rol rol;
@@ -33,11 +31,10 @@ public class UsuarioEntity {
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
-    // --- CONSTRUCTORES ---
-    public UsuarioEntity() {
-    }
+    public UsuarioEntity() {}
 
-    public UsuarioEntity(Long id, String nombre, String email, String password, Rol rol, boolean activo, LocalDateTime fechaCreacion) {
+    public UsuarioEntity(Long id, String nombre, String email, String password,
+                         Rol rol, boolean activo, LocalDateTime fechaCreacion) {
         this.id = id;
         this.nombre = nombre;
         this.email = email;
@@ -47,25 +44,26 @@ public class UsuarioEntity {
         this.fechaCreacion = fechaCreacion;
     }
 
-    // --- GETTERS Y SETTERS ---
+    // ← FIX: asigna fecha_creacion automáticamente
+    @PrePersist
+    public void prePersist() {
+        if (fechaCreacion == null) {
+            fechaCreacion = LocalDateTime.now();
+        }
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
-
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
-
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
-
     public Rol getRol() { return rol; }
     public void setRol(Rol rol) { this.rol = rol; }
-
     public boolean isActivo() { return activo; }
     public void setActivo(boolean activo) { this.activo = activo; }
-
     public LocalDateTime getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(LocalDateTime fechaCreacion) { this.fechaCreacion = fechaCreacion; }
 }
