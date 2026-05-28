@@ -36,7 +36,6 @@ public class SecurityConfig {
 
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-
                     config.setAllowedOrigins(List.of(
                             "http://localhost:4200",
                             "https://cerulean-kitten-f5af4b.netlify.app"
@@ -46,7 +45,6 @@ public class SecurityConfig {
                     ));
                     config.setAllowedHeaders(List.of("*"));
                     config.setAllowCredentials(true);
-
                     return config;
                 }))
 
@@ -57,9 +55,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/usuarios/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/notificaciones/**").permitAll()
+
+                        .requestMatchers("/api/usuarios/**")
+                        .hasRole("Administrador")
 
                         .requestMatchers("/api/monitoreo/**")
                         .hasAnyRole("Administrador", "Operador")
