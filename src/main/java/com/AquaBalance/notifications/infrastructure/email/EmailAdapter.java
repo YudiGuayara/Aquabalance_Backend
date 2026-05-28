@@ -37,7 +37,7 @@ public class EmailAdapter implements NotificacionEmailPort {
                 + " | nivel=" + notificacion.getNivel());
 
         if (!habilitado) {
-            System.out.println("⚠️  Email deshabilitado en configuración.");
+            System.out.println("Email deshabilitado en configuración.");
             return;
         }
 
@@ -48,16 +48,16 @@ public class EmailAdapter implements NotificacionEmailPort {
 
             helper.setFrom(remitente);
             helper.setTo(destinatario);
-            helper.setSubject("🚨 AquaBalance — " + notificacion.getTitulo());
+            helper.setSubject("AquaBalance — " + notificacion.getTitulo());
             helper.setText(construirHtml(notificacion), true);
 
             mailSender.send(message);
-            System.out.println("✅ Email enviado exitosamente: "
+            System.out.println(" Email enviado exitosamente: "
                     + notificacion.getTitulo());
 
         } catch (MessagingException e) {
             e.printStackTrace();
-            System.err.println("❌ Error enviando email: " + e.getMessage());
+            System.err.println(" Error enviando email: " + e.getMessage());
         }
     }
 
@@ -85,7 +85,7 @@ public class EmailAdapter implements NotificacionEmailPort {
                 <div style="background:linear-gradient(135deg,#0077b6,#023e8a);
                             padding:28px 32px">
                   <h1 style="color:white;margin:0;font-size:20px">
-                    💧 AquaBalance
+                      AquaBalance
                   </h1>
                   <p style="color:rgba(255,255,255,0.8);margin:6px 0 0;
                              font-size:13px">

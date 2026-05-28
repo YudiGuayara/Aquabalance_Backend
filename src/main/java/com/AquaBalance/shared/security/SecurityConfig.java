@@ -13,86 +13,57 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 
-import java.util.List;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
-    private final AuthenticationProvider authenticationProvider;
+    private final AuthenticationProvider  authenticationProvider;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter,
                           AuthenticationProvider authenticationProvider) {
-        this.jwtAuthFilter = jwtAuthFilter;
+        this.jwtAuthFilter          = jwtAuthFilter;
         this.authenticationProvider = authenticationProvider;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
                 .csrf(AbstractHttpConfigurer::disable)
-
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-                    config.setAllowedOrigins(List.of(
-                            "http://localhost:4200",
-                            "https://cerulean-kitten-f5af4b.netlify.app"
-                    ));
-                    config.setAllowedMethods(List.of(
-                            "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
-                    ));
-                    config.setAllowedHeaders(List.of("*"));
+                    config.addAllowedOrigin("http://localhost:4200");
+                    config.addAllowedMethod("*");
+                    config.addAllowedHeader("*");
                     config.setAllowCredentials(true);
                     return config;
                 }))
-
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-
                 .authorizeHttpRequests(auth -> auth
-
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/ws/**").permitAll()
-                        .requestMatchers("/api/notificaciones/**").permitAll()
-
-                        .requestMatchers("/api/usuarios/**")
-                        .hasRole("Administrador")
-
+                        .requestMatchers("/ws/**").permitAll()                 // WebSocket
+                        .requestMatchers("/api/notificaciones/**").permitAll() // Notificaciones
                         .requestMatchers("/api/monitoreo/**")
                         .hasAnyRole("Administrador", "Operador")
-
                         .requestMatchers("/api/eventos/**")
                         .hasAnyRole("Administrador", "Operador")
-
                         .requestMatchers("/api/alertas/**")
                         .hasAnyRole("Administrador", "Operador")
-
-                        .requestMatchers("/api/informes/**")
-                        .hasAnyRole("Administrador", "Operador")
-
                         .requestMatchers("/api/reportes/**")
                         .hasRole("Administrador")
-
                         .anyRequest().authenticated()
                 )
-
+                .sessionManagement(session -> session
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authenticationProvider(authenticationProvider)
-
-                .addFilterBefore(
-                        jwtAuthFilter,
-                        UsernamePasswordAuthenticationFilter.class
-                );
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
     @Bean
     public AuthenticationManager authenticationManager(
-            AuthenticationConfiguration config
-    ) throws Exception {
+            AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
 }

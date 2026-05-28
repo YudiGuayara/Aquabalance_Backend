@@ -33,7 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
 
-        // 🔥 RUTAS PUBLICAS
+        // RUTAS PUBLICAS
         if (path.startsWith("/api/auth")) {
             filterChain.doFilter(request, response);
             return;
@@ -41,7 +41,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String authHeader = request.getHeader("Authorization");
 
-        // ❌ SIN TOKEN = 401 (IMPORTANTE)
+        // SIN TOKEN = 401 (IMPORTANTE)
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;

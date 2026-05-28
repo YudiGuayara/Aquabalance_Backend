@@ -8,7 +8,6 @@ import com.AquaBalance.notifications.infrastructure.persistence.NotificacionEnti
 import com.AquaBalance.notifications.infrastructure.persistence.NotificacionRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.annotation.Propagation;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -32,7 +31,7 @@ public class NotificacionService implements GestionarNotificacionUseCase {
     // ── Notificar ─────────────────────────────────────────────────────────────
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public void notificar(Notificacion notificacion) {
         // 1. Guardar en BD
         NotificacionEntity entity = toEntity(notificacion);
@@ -45,15 +44,15 @@ public class NotificacionService implements GestionarNotificacionUseCase {
 
         // 3. Email solo si nivel es ALTA o MEDIA
         String nivel = notificacion.getNivel();
-        System.out.println("🔔 Notificación guardada: " + notificacion.getTitulo()
+        System.out.println(" Notificación guardada: " + notificacion.getTitulo()
                 + " | Nivel: " + nivel);
 
         if (nivel != null &&
                 (nivel.equalsIgnoreCase("ALTA") || nivel.equalsIgnoreCase("MEDIA"))) {
-            System.out.println("📤 Enviando email para nivel: " + nivel);
+            System.out.println(" Enviando email para nivel: " + nivel);
             emailPort.enviar(notificacion);
         } else {
-            System.out.println("⏭️  Nivel '" + nivel + "' no requiere email.");
+            System.out.println(" Nivel '" + nivel + "' no requiere email.");
         }
     }
 

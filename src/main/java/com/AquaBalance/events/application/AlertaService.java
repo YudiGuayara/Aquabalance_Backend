@@ -20,7 +20,7 @@ public class AlertaService implements GestionarAlertaUseCase {
 
     public AlertaService(AlertaRepositoryPort repositoryPort,
                          GestionarNotificacionUseCase notificacionUseCase) {
-        this.repositoryPort      = repositoryPort;
+        this.repositoryPort   = repositoryPort;
         this.notificacionUseCase = notificacionUseCase;
     }
 
@@ -28,26 +28,21 @@ public class AlertaService implements GestionarAlertaUseCase {
     public AlertaDTO crear(AlertaDTO dto) {
         dto.setFecha(LocalDateTime.now());
         Alerta guardada = repositoryPort.guardar(toEntity(dto));
+
+        // Mapear NivelAlerta → nivel de notificación (ALTA / MEDIA / BAJA)
         String nivelNotificacion = mapearNivel(guardada.getNivel());
         notificacionUseCase.notificarAlerta(guardada.getMensaje(), nivelNotificacion);
+
         return toDTO(guardada);
     }
 
     @Override
     public AlertaDTO actualizar(Long id, AlertaDTO dto) {
-        // ← FIX: obtener la alerta existente para conservar la fecha original
-        Alerta existente = repositoryPort.buscarPorId(id)
+        repositoryPort.buscarPorId(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Alerta no encontrada con id: " + id));
-
         Alerta alerta = toEntity(dto);
         alerta.setId(id);
-
-        // ← FIX: si el DTO no trae fecha, usar la fecha original
-        if (alerta.getFecha() == null) {
-            alerta.setFecha(existente.getFecha());
-        }
-
         return toDTO(repositoryPort.guardar(alerta));
     }
 
@@ -88,6 +83,17 @@ public class AlertaService implements GestionarAlertaUseCase {
         repositoryPort.eliminar(id);
     }
 
+    // ── Mapeo NivelAlerta → String para notificaciones ────────────────────────
+
+    /**
+     * Convierte el enum NivelAlerta al nivel string que usa el sistema
+     * de notificaciones para decidir si envía email (ALTA / MEDIA) o no (BAJA).
+     *
+     *  Roja     → ALTA   → guarda en BD + WebSocket + Email
+     *  Naranja  → ALTA   → guarda en BD + WebSocket + Email
+     *  Amarilla → MEDIA  → guarda en BD + WebSocket + Email
+     *  Verde    → BAJA   → guarda en BD + WebSocket  (sin email)
+     */
     private String mapearNivel(NivelAlerta nivel) {
         if (nivel == null) return "BAJA";
         return switch (nivel) {
@@ -97,6 +103,8 @@ public class AlertaService implements GestionarAlertaUseCase {
             case Verde    -> "BAJA";
         };
     }
+
+    // ── Mappers ───────────────────────────────────────────────────────────────
 
     private Alerta toEntity(AlertaDTO dto) {
         return new Alerta(
