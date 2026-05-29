@@ -48,7 +48,7 @@ public class EmailAdapter implements NotificacionEmailPort {
 
             helper.setFrom(remitente);
             helper.setTo(destinatario);
-            helper.setSubject("🚨 AquaBalance — " + notificacion.getTitulo());
+            helper.setSubject("AquaBalance — " + notificacion.getTitulo());
             helper.setText(construirHtml(notificacion), true);
 
             mailSender.send(message);
