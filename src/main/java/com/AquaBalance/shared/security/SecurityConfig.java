@@ -38,7 +38,7 @@ public class SecurityConfig {
                     CorsConfiguration config = new CorsConfiguration();
                     config.setAllowedOrigins(List.of(
                             "http://localhost:4200",
-                            "https://aquabalance-system.netlify.app"
+                            "https://aquabalance-frontend.vercel.app/"
                     ));
                     config.setAllowedMethods(List.of(
                             "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
