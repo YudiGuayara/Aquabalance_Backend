@@ -54,28 +54,56 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        // ── PÚBLICO ──────────────────────────────────────
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/notificaciones/**").permitAll()
 
+                        // ── USUARIOS — solo Administrador ─────────────────
                         .requestMatchers("/api/usuarios/**")
                         .hasRole("Administrador")
 
+                        // ── MONITOREO GET — todos los roles autenticados ──
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/monitoreo/**")
+                        .hasAnyRole("Administrador", "Operador", "UsuarioPublico")
+
+                        // ── MONITOREO POST/PUT/DELETE — solo Admin y Operador
                         .requestMatchers("/api/monitoreo/**")
                         .hasAnyRole("Administrador", "Operador")
 
+                        // ── EVENTOS GET — todos los roles autenticados ────
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/eventos/**")
+                        .hasAnyRole("Administrador", "Operador", "UsuarioPublico")
+
+                        // ── EVENTOS POST/PUT/DELETE — solo Admin y Operador
                         .requestMatchers("/api/eventos/**")
                         .hasAnyRole("Administrador", "Operador")
 
+                        // ── ALERTAS GET — todos los roles autenticados ────
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/alertas/**")
+                        .hasAnyRole("Administrador", "Operador", "UsuarioPublico")
+
+                        // ── ALERTAS POST/PUT/DELETE — solo Admin y Operador
                         .requestMatchers("/api/alertas/**")
                         .hasAnyRole("Administrador", "Operador")
 
+                        // ── INFORMES GET — todos los roles autenticados ───
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/informes/**")
+                        .hasAnyRole("Administrador", "Operador", "UsuarioPublico")
+
+                        // ── INFORMES POST/PUT/DELETE — solo Admin y Operador
                         .requestMatchers("/api/informes/**")
                         .hasAnyRole("Administrador", "Operador")
 
+                        // ── REPORTES — solo Administrador ─────────────────
                         .requestMatchers("/api/reportes/**")
                         .hasRole("Administrador")
 
+                        // ── TODO LO DEMÁS requiere autenticación ──────────
                         .anyRequest().authenticated()
                 )
 
