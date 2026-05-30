@@ -62,7 +62,7 @@ public class InformeService implements GestionarInformeUseCase {
     // ── Obtener con estadísticas ──────────────────────────────────────────────
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public InformeDetalle obtenerInforme(Long id) {
         Informe informe = informePort.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Informe no encontrado: " + id));

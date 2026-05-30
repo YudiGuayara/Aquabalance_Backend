@@ -36,7 +36,6 @@ public class SecurityConfig {
 
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration config = new CorsConfiguration();
-
                     config.setAllowedOrigins(List.of(
                             "http://localhost:4200",
                             "https://cerulean-kitten-f5af4b.netlify.app"
@@ -46,7 +45,6 @@ public class SecurityConfig {
                     ));
                     config.setAllowedHeaders(List.of("*"));
                     config.setAllowCredentials(true);
-
                     return config;
                 }))
 
@@ -56,26 +54,52 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        // ── Públicas sin token ──────────────────────────────
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/usuarios/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
-                        .requestMatchers("/api/notificaciones/**").permitAll()
 
+                        // ── Usuarios: solo Admin ────────────────────────────
+                        .requestMatchers("/api/usuarios/**")
+                        .hasRole("Administrador")
+
+                        // ── Notificaciones: Admin y Operador ────────────────
+                        .requestMatchers("/api/notificaciones/**")
+                        .hasAnyRole("Administrador", "Operador")
+
+                        // ── Monitoreo (recursos, mediciones, contaminantes) ─
+                        // GET: los 3 roles pueden leer
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/monitoreo/**")
+                        .hasAnyRole("Administrador", "Operador", "UsuarioPublico")
+                        // POST/PUT/DELETE: solo Admin y Operador
                         .requestMatchers("/api/monitoreo/**")
                         .hasAnyRole("Administrador", "Operador")
 
+                        // ── Eventos ─────────────────────────────────────────
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/eventos/**")
+                        .hasAnyRole("Administrador", "Operador", "UsuarioPublico")
                         .requestMatchers("/api/eventos/**")
                         .hasAnyRole("Administrador", "Operador")
 
+                        // ── Alertas ─────────────────────────────────────────
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/alertas/**")
+                        .hasAnyRole("Administrador", "Operador", "UsuarioPublico")
                         .requestMatchers("/api/alertas/**")
                         .hasAnyRole("Administrador", "Operador")
 
+                        // ── Informes / Reportes ─────────────────────────────
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/informes/**")
+                        .hasAnyRole("Administrador", "Operador", "UsuarioPublico")
                         .requestMatchers("/api/informes/**")
                         .hasAnyRole("Administrador", "Operador")
 
                         .requestMatchers("/api/reportes/**")
                         .hasRole("Administrador")
 
+                        // ── Todo lo demás requiere estar autenticado ─────────
                         .anyRequest().authenticated()
                 )
 

@@ -16,13 +16,19 @@ public class CustomUserDetailsService implements UserDetailsService {
         this.buscarUsuarioUseCase = buscarUsuarioUseCase;
     }
 
+
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        try {
-            Usuario usuario = buscarUsuarioUseCase.buscarPorEmail(email);
-            return new CustomUserDetails(usuario);
-        } catch (RuntimeException e) {
-            throw new UsernameNotFoundException("No se encontró el usuario con el correo: " + email);
-        }
+    public UserDetails loadUserByUsername(String email) {
+
+        Usuario usuario = buscarUsuarioUseCase.buscarPorEmail(email);
+
+        System.out.println("================================");
+        System.out.println("EMAIL: " + usuario.getEmail());
+        System.out.println("ROL: " + usuario.getRol());
+        System.out.println("ACTIVO: " + usuario.isActivo());
+        System.out.println("PASSWORD_BD: " + usuario.getPassword());
+        System.out.println("================================");
+
+        return new CustomUserDetails(usuario);
     }
 }
