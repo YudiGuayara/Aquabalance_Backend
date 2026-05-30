@@ -1,3 +1,4 @@
+// UserServiceTest.java
 package com.AquaBalance.user.application;
 
 import com.AquaBalance.shared.exception.BusinessException;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,12 +30,12 @@ class UserServiceTest {
     @Mock
     private UsuarioRepository usuarioRepository;
 
+    @Mock
+    private PasswordEncoder passwordEncoder; // ← faltaba esto
+
     @InjectMocks
     private UserService service;
 
-    // ---------------------------------------------------------------
-    // Datos de prueba reutilizables
-    // ---------------------------------------------------------------
     private Usuario usuarioActivo;
     private Usuario usuarioInactivo;
 
@@ -44,9 +46,6 @@ class UserServiceTest {
         usuarioInactivo.desactivar();
     }
 
-    // ===============================================================
-    // REGISTRAR
-    // ===============================================================
     @Nested
     @DisplayName("registrar()")
     class Registrar {
@@ -55,6 +54,7 @@ class UserServiceTest {
         @DisplayName("Debe registrar un usuario cuando el correo no existe aún")
         void debeRegistrarUsuarioNuevo() {
             when(usuarioRepository.findByEmail("carlos@aqua.com")).thenReturn(Optional.empty());
+            when(passwordEncoder.encode(any())).thenReturn("hash_encriptado"); // ← mock del encode
             when(usuarioRepository.save(any(Usuario.class))).thenReturn(usuarioActivo);
 
             Usuario resultado = service.registrar(usuarioActivo);
@@ -79,9 +79,6 @@ class UserServiceTest {
         }
     }
 
-    // ===============================================================
-    // BUSCAR POR ID
-    // ===============================================================
     @Nested
     @DisplayName("buscarPorId()")
     class BuscarPorId {
@@ -108,9 +105,6 @@ class UserServiceTest {
         }
     }
 
-    // ===============================================================
-    // BUSCAR POR EMAIL
-    // ===============================================================
     @Nested
     @DisplayName("buscarPorEmail()")
     class BuscarPorEmail {
@@ -136,9 +130,6 @@ class UserServiceTest {
         }
     }
 
-    // ===============================================================
-    // LISTAR ACTIVOS
-    // ===============================================================
     @Nested
     @DisplayName("listarActivos()")
     class ListarActivos {
@@ -163,9 +154,6 @@ class UserServiceTest {
         }
     }
 
-    // ===============================================================
-    // DESACTIVAR USUARIO
-    // ===============================================================
     @Nested
     @DisplayName("desactivarUsuario()")
     class DesactivarUsuario {
@@ -195,9 +183,6 @@ class UserServiceTest {
         }
     }
 
-    // ===============================================================
-    // ACTIVAR USUARIO
-    // ===============================================================
     @Nested
     @DisplayName("activarUsuario()")
     class ActivarUsuario {
@@ -227,9 +212,6 @@ class UserServiceTest {
         }
     }
 
-    // ===============================================================
-    // LÓGICA DE DOMINIO: activar / desactivar en Usuario
-    // ===============================================================
     @Nested
     @DisplayName("Lógica de dominio - Usuario.activar() y desactivar()")
     class LogicaDominio {

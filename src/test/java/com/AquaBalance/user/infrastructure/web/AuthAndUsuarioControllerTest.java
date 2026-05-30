@@ -71,7 +71,7 @@ class AuthControllerTest {
             req.setPassword("secret123");
             req.setRol("Operador");
 
-            AuthResponse response = new AuthResponse("jwt-token-123", "laura@aqua.com", "Laura Gómez", "Operador");
+            AuthResponse response = new AuthResponse(1L, "jwt-token-123", "laura@aqua.com", "Laura Gómez", "Operador");
             when(authService.registrar(any())).thenReturn(response);
 
             mockMvc.perform(post("/api/auth/registro")
@@ -96,7 +96,7 @@ class AuthControllerTest {
             req.setEmail("laura@aqua.com");
             req.setPassword("secret123");
 
-            AuthResponse response = new AuthResponse("jwt-token-456", "laura@aqua.com", "Laura Gómez", "Operador");
+            AuthResponse response = new AuthResponse(1L, "jwt-token-456", "laura@aqua.com", "Laura Gómez", "Operador");
             when(authService.login(any())).thenReturn(response);
 
             mockMvc.perform(post("/api/auth/login")
@@ -229,35 +229,34 @@ class UsuarioControllerTest {
     }
 
     @Nested
-    @DisplayName("PATCH /api/usuarios/{id}/toggle-activo")
-    class ToggleActivo {
+    @DisplayName("PATCH /api/usuarios/{id}/activar")
+    class Activar {
 
         @Test
-        @DisplayName("Debe desactivar usuario si está activo")
-        void debeDesactivarSiEstaActivo() throws Exception {
-            when(buscarUseCase.buscarPorId(1L)).thenReturn(usuarioActivo); // activo = true
+        @DisplayName("Debe activar usuario y retornar 200")
+        void debeActivar() throws Exception {
+            doNothing().when(gestionarUseCase).activarUsuario(1L);
+
+            mockMvc.perform(patch("/api/usuarios/1/activar"))
+                    .andExpect(status().isOk());
+
+            verify(gestionarUseCase).activarUsuario(1L);
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /api/usuarios/{id}/desactivar")
+    class Desactivar {
+
+        @Test
+        @DisplayName("Debe desactivar usuario y retornar 200")
+        void debeDesactivar() throws Exception {
             doNothing().when(gestionarUseCase).desactivarUsuario(1L);
 
-            mockMvc.perform(patch("/api/usuarios/1/toggle-activo"))
+            mockMvc.perform(patch("/api/usuarios/1/desactivar"))
                     .andExpect(status().isOk());
 
             verify(gestionarUseCase).desactivarUsuario(1L);
-            verify(gestionarUseCase, never()).activarUsuario(anyLong());
-        }
-
-        @Test
-        @DisplayName("Debe activar usuario si está inactivo")
-        void debeActivarSiEstaInactivo() throws Exception {
-            Usuario inactivo = new Usuario(2L, "Ana", "ana@aqua.com", "h", Rol.Operador);
-            inactivo.desactivar();
-            when(buscarUseCase.buscarPorId(2L)).thenReturn(inactivo);
-            doNothing().when(gestionarUseCase).activarUsuario(2L);
-
-            mockMvc.perform(patch("/api/usuarios/2/toggle-activo"))
-                    .andExpect(status().isOk());
-
-            verify(gestionarUseCase).activarUsuario(2L);
-            verify(gestionarUseCase, never()).desactivarUsuario(anyLong());
         }
     }
 
@@ -266,14 +265,14 @@ class UsuarioControllerTest {
     class Eliminar {
 
         @Test
-        @DisplayName("Debe desactivar (borrado lógico) y retornar 200")
-        void debeDesactivarAlEliminar() throws Exception {
-            doNothing().when(gestionarUseCase).desactivarUsuario(1L);
+        @DisplayName("Debe eliminar físicamente y retornar 204")
+        void debeEliminarAlEliminar() throws Exception {
+            doNothing().when(gestionarUseCase).eliminarUsuario(1L);
 
             mockMvc.perform(delete("/api/usuarios/1"))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isNoContent());
 
-            verify(gestionarUseCase).desactivarUsuario(1L);
+            verify(gestionarUseCase).eliminarUsuario(1L);
         }
     }
 }

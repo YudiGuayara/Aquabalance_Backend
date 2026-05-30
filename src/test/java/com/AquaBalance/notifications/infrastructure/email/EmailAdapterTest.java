@@ -1,3 +1,4 @@
+// EmailAdapterTest.java
 package com.AquaBalance.notifications.infrastructure.email;
 
 import com.AquaBalance.notifications.domain.Notificacion;
@@ -71,7 +72,8 @@ class EmailAdapterTest {
         verify(mailSender).createMimeMessage();
         verify(mailSender).send(mimeMessage);
 
-        assertThat(mimeMessage.getSubject()).isEqualTo("AquaBalance — Nivel de agua crítico");
+        // ← El subject incluye el emoji que agrega EmailAdapter
+        assertThat(mimeMessage.getSubject()).isEqualTo("🚨 AquaBalance — Nivel de agua crítico");
         assertThat(mimeMessage.getFrom()).hasSize(1);
         assertThat(mimeMessage.getFrom()[0].toString()).contains("origen@aqua.com");
         assertThat(mimeMessage.getAllRecipients()).hasSize(1);
@@ -101,6 +103,7 @@ class EmailAdapterTest {
         emailAdapter.enviar(notificacion);
 
         verify(mailSender).send(mimeMessage);
-        assertThat(mimeMessage.getSubject()).isEqualTo("AquaBalance — Notificación sin nivel");
+        // ← nivel null → sin emoji
+        assertThat(mimeMessage.getSubject()).isEqualTo("🚨 AquaBalance — Notificación sin nivel");
     }
 }

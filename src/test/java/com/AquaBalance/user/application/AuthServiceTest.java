@@ -1,5 +1,7 @@
+// AuthServiceTest.java
 package com.AquaBalance.user.application;
 
+import com.AquaBalance.notifications.infrastructure.email.EmailAdapter;
 import com.AquaBalance.user.application.ports.in.BuscarUsuarioUseCase;
 import com.AquaBalance.user.application.ports.in.RegistrarUsuarioUseCase;
 import com.AquaBalance.user.application.ports.out.TokenPort;
@@ -45,12 +47,12 @@ class AuthServiceTest {
     @Mock
     private AuthenticationManager authenticationManager;
 
+    @Mock
+    private EmailAdapter emailAdapter; // ← faltaba esto
+
     @InjectMocks
     private AuthService authService;
 
-    // ---------------------------------------------------------------
-    // Datos de prueba reutilizables
-    // ---------------------------------------------------------------
     private RegisterRequest requestRegistro;
     private LoginRequest requestLogin;
     private Usuario usuarioGuardado;
@@ -70,9 +72,6 @@ class AuthServiceTest {
         usuarioGuardado = new Usuario(1L, "María García", "maria@aqua.com", "hash_seguro", Rol.Operador);
     }
 
-    // ===============================================================
-    // REGISTRAR
-    // ===============================================================
     @Nested
     @DisplayName("registrar()")
     class Registrar {
@@ -80,9 +79,9 @@ class AuthServiceTest {
         @Test
         @DisplayName("Debe registrar un usuario y retornar AuthResponse con token")
         void debeRegistrarUsuarioYRetornarToken() {
-            when(passwordEncoder.encode("Segura123!")).thenReturn("hash_seguro");
             when(registrarUsuarioUseCase.registrar(any(Usuario.class))).thenReturn(usuarioGuardado);
             when(tokenPort.generateToken(any(CustomUserDetails.class))).thenReturn("jwt.token.generado");
+            doNothing().when(emailAdapter).enviarBienvenida(any(), any());
 
             AuthResponse respuesta = authService.registrar(requestRegistro);
 
@@ -96,23 +95,22 @@ class AuthServiceTest {
         @Test
         @DisplayName("Debe codificar la contraseña antes de guardar")
         void debeCodificarContraseniaAntesDeGuardar() {
-            when(passwordEncoder.encode("Segura123!")).thenReturn("hash_seguro");
             when(registrarUsuarioUseCase.registrar(any(Usuario.class))).thenReturn(usuarioGuardado);
             when(tokenPort.generateToken(any())).thenReturn("token");
+            doNothing().when(emailAdapter).enviarBienvenida(any(), any());
 
             authService.registrar(requestRegistro);
 
-            verify(passwordEncoder).encode("Segura123!");
-            // Verificamos que el usuario que se envía al repositorio tiene la contraseña codificada
-            verify(registrarUsuarioUseCase).registrar(argThat(u -> "hash_seguro".equals(u.getPassword())));
+            // La contraseña llega en texto plano al registrar (UserService hace el encode)
+            verify(registrarUsuarioUseCase).registrar(argThat(u -> "Segura123!".equals(u.getPassword())));
         }
 
         @Test
         @DisplayName("Debe asignar el rol correcto al nuevo usuario")
         void debeAsignarRolCorrecto() {
-            when(passwordEncoder.encode(any())).thenReturn("hash");
             when(registrarUsuarioUseCase.registrar(any(Usuario.class))).thenReturn(usuarioGuardado);
             when(tokenPort.generateToken(any())).thenReturn("token");
+            doNothing().when(emailAdapter).enviarBienvenida(any(), any());
 
             authService.registrar(requestRegistro);
 
@@ -133,9 +131,9 @@ class AuthServiceTest {
         @Test
         @DisplayName("Debe generar un token JWT tras registrar exitosamente")
         void debeGenerarTokenJwt() {
-            when(passwordEncoder.encode(any())).thenReturn("hash");
             when(registrarUsuarioUseCase.registrar(any())).thenReturn(usuarioGuardado);
             when(tokenPort.generateToken(any())).thenReturn("jwt.generado");
+            doNothing().when(emailAdapter).enviarBienvenida(any(), any());
 
             AuthResponse respuesta = authService.registrar(requestRegistro);
 
@@ -144,9 +142,6 @@ class AuthServiceTest {
         }
     }
 
-    // ===============================================================
-    // LOGIN
-    // ===============================================================
     @Nested
     @DisplayName("login()")
     class Login {
@@ -154,8 +149,7 @@ class AuthServiceTest {
         @Test
         @DisplayName("Debe retornar AuthResponse con token cuando las credenciales son correctas")
         void debeRetornarTokenConCredencialesCorrectas() {
-            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                    .thenReturn(null); // authenticate() retorna Authentication, pero no lo usamos
+            when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class))).thenReturn(null);
             when(buscarUsuarioUseCase.buscarPorEmail("maria@aqua.com")).thenReturn(usuarioGuardado);
             when(tokenPort.generateToken(any(CustomUserDetails.class))).thenReturn("jwt.login.token");
 
@@ -179,8 +173,8 @@ class AuthServiceTest {
             verify(authenticationManager).authenticate(
                     argThat(auth ->
                             auth instanceof UsernamePasswordAuthenticationToken &&
-                            "maria@aqua.com".equals(auth.getPrincipal()) &&
-                            "Segura123!".equals(auth.getCredentials())
+                                    "maria@aqua.com".equals(auth.getPrincipal()) &&
+                                    "Segura123!".equals(auth.getCredentials())
                     )
             );
         }
