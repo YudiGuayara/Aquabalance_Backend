@@ -6,6 +6,7 @@ import java.util.List;
 public interface GestionarUsuarioUseCase {
     void          desactivarUsuario(Long id);
     void          activarUsuario(Long id);
+    void          eliminarUsuario(Long id);
     List<Usuario> listarTodos();
     Usuario       actualizar(Long id, Usuario usuario);
 }

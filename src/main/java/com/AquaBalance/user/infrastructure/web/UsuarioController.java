@@ -28,8 +28,6 @@ public class UsuarioController {
         this.registrarUseCase = registrarUseCase;
     }
 
-    // ── GET /api/usuarios ─────────────────────────────────────
-
     @GetMapping
     public ResponseEntity<List<UserDTO>> listar() {
         return ResponseEntity.ok(
@@ -40,22 +38,16 @@ public class UsuarioController {
         );
     }
 
-    // ── GET /api/usuarios/{id} ────────────────────────────────
-
     @GetMapping("/{id}")
     public ResponseEntity<UserDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(toDTO(buscarUseCase.buscarPorId(id)));
     }
-
-    // ── POST /api/usuarios ────────────────────────────────────
 
     @PostMapping
     public ResponseEntity<UserDTO> crear(@RequestBody UserDTO dto) {
         Usuario guardado = registrarUseCase.registrar(toDomain(dto));
         return ResponseEntity.ok(toDTO(guardado));
     }
-
-    // ── PUT /api/usuarios/{id} ────────────────────────────────
 
     @PutMapping("/{id}")
     public ResponseEntity<UserDTO> actualizar(@PathVariable Long id,
@@ -64,25 +56,23 @@ public class UsuarioController {
         return ResponseEntity.ok(toDTO(actualizado));
     }
 
-    // ── PATCH /api/usuarios/{id}/toggle-activo ────────────────
-
-    @PatchMapping("/{id}/toggle-activo")
-    public ResponseEntity<Void> toggleActivo(@PathVariable Long id) {
-        Usuario u = buscarUseCase.buscarPorId(id);
-        if (u.isActivo()) gestionarUseCase.desactivarUsuario(id);
-        else              gestionarUseCase.activarUsuario(id);
+    @PatchMapping("/{id}/activar")
+    public ResponseEntity<Void> activar(@PathVariable Long id) {
+        gestionarUseCase.activarUsuario(id);
         return ResponseEntity.ok().build();
     }
 
-    // ── DELETE /api/usuarios/{id} ─────────────────────────────
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+    @PatchMapping("/{id}/desactivar")
+    public ResponseEntity<Void> desactivar(@PathVariable Long id) {
         gestionarUseCase.desactivarUsuario(id);
         return ResponseEntity.ok().build();
     }
 
-    // ── Mappers ───────────────────────────────────────────────
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        gestionarUseCase.eliminarUsuario(id);
+        return ResponseEntity.noContent().build();
+    }
 
     private UserDTO toDTO(Usuario u) {
         UserDTO dto = new UserDTO();
@@ -92,7 +82,6 @@ public class UsuarioController {
         dto.setRol(u.getRol() != null ? u.getRol().name() : null);
         dto.setActivo(u.isActivo());
         dto.setFechaCreacion(u.getFechaCreacion());
-        // password nunca se devuelve al frontend
         return dto;
     }
 

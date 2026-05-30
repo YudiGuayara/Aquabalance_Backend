@@ -42,12 +42,17 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
                 .collect(Collectors.toList());
     }
 
-    @Override                                        // ← NUEVO
+    @Override
     public List<Usuario> findAll() {
         return jpaRepository.findAll()
                 .stream()
                 .map(this::toDomain)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void delete(Usuario usuario) {
+        jpaRepository.deleteById(usuario.getId()); // ← borrado físico
     }
 
     // ── Mappers ───────────────────────────────────────────────
