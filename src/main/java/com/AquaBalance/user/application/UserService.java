@@ -7,8 +7,10 @@ import com.AquaBalance.user.application.ports.in.GestionarUsuarioUseCase;
 import com.AquaBalance.user.application.ports.in.RegistrarUsuarioUseCase;
 import com.AquaBalance.user.domain.Usuario;
 import com.AquaBalance.user.domain.UsuarioRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -18,9 +20,12 @@ public class UserService implements
         GestionarUsuarioUseCase {
 
     private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder   passwordEncoder;
 
-    public UserService(UsuarioRepository usuarioRepository) {
+    public UserService(UsuarioRepository usuarioRepository,
+                       PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
+        this.passwordEncoder   = passwordEncoder;
     }
 
     // ── RegistrarUsuarioUseCase ───────────────────────────────
@@ -31,6 +36,17 @@ public class UserService implements
             throw new BusinessException(
                     "El correo electrónico ya está registrado en el sistema.");
         }
+
+        // ✅ asignar fecha si no viene
+        if (usuario.getFechaCreacion() == null) {
+            usuario.setFechaCreacion(LocalDateTime.now());
+        }
+
+        // ✅ encriptar password si no está encriptado
+        if (usuario.getPassword() != null && !usuario.getPassword().isBlank()) {
+            usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
+        }
+
         return usuarioRepository.save(usuario);
     }
 
@@ -68,12 +84,22 @@ public class UserService implements
         existente.setNombre(nuevo.getNombre());
         existente.setEmail(nuevo.getEmail());
         existente.setRol(nuevo.getRol());
+
+        // ✅ solo encriptar si viene nueva password
         if (nuevo.getPassword() != null && !nuevo.getPassword().isBlank()) {
-            existente.setPassword(nuevo.getPassword());
+            existente.setPassword(passwordEncoder.encode(nuevo.getPassword()));
         }
+
         if (nuevo.isActivo()) existente.activar();
         else                  existente.desactivar();
+
         return usuarioRepository.save(existente);
+    }
+
+    @Override
+    public void eliminarUsuario(Long id) {
+        Usuario usuario = buscarPorId(id);
+        usuarioRepository.delete(usuario);  // ← borrado físico
     }
 
     @Override
