@@ -38,12 +38,12 @@ public class AlertaService implements GestionarAlertaUseCase {
     @Override
     public AlertaDTO actualizar(Long id, AlertaDTO dto) {
 
-        // ✅ cargar la alerta existente para preservar la fecha
+        //  cargar la alerta existente para preservar la fecha
         Alerta existente = repositoryPort.buscarPorId(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Alerta no encontrada con id: " + id));
 
-        // ✅ solo actualizar los campos que el usuario puede cambiar
+        //  solo actualizar los campos que el usuario puede cambiar
         existente.setNivel(dto.getNivel());
         existente.setMensaje(dto.getMensaje());
         existente.setIdUsuario(dto.getIdUsuario());

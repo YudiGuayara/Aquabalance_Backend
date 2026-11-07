@@ -32,7 +32,7 @@ public class InformeEntity {
     @Column(name = "contaminante_id", nullable = false)
     private Long contaminanteId;
 
-    // ✅ Campos opcionales
+    //  Campos opcionales
     @Column(name = "fecha")
     private LocalDateTime fecha;
 

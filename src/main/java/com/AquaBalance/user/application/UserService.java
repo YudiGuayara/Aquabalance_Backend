@@ -37,12 +37,12 @@ public class UserService implements
                     "El correo electrónico ya está registrado en el sistema.");
         }
 
-        // ✅ asignar fecha si no viene
+        //  asignar fecha si no viene
         if (usuario.getFechaCreacion() == null) {
             usuario.setFechaCreacion(LocalDateTime.now());
         }
 
-        // ✅ encriptar password si no está encriptado
+        //  encriptar password si no está encriptado
         if (usuario.getPassword() != null && !usuario.getPassword().isBlank()) {
             usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
         }
@@ -85,7 +85,7 @@ public class UserService implements
         existente.setEmail(nuevo.getEmail());
         existente.setRol(nuevo.getRol());
 
-        // ✅ solo encriptar si viene nueva password
+        //  solo encriptar si viene nueva password
         if (nuevo.getPassword() != null && !nuevo.getPassword().isBlank()) {
             existente.setPassword(passwordEncoder.encode(nuevo.getPassword()));
         }
@@ -99,7 +99,7 @@ public class UserService implements
     @Override
     public void eliminarUsuario(Long id) {
         Usuario usuario = buscarPorId(id);
-        usuarioRepository.delete(usuario);  // ← borrado físico
+        usuarioRepository.delete(usuario);
     }
 
     @Override

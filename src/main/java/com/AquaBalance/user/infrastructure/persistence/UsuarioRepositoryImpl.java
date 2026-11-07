@@ -52,10 +52,9 @@ public class UsuarioRepositoryImpl implements UsuarioRepository {
 
     @Override
     public void delete(Usuario usuario) {
-        jpaRepository.deleteById(usuario.getId()); // ← borrado físico
+        jpaRepository.deleteById(usuario.getId());
     }
 
-    // ── Mappers ───────────────────────────────────────────────
 
     private UsuarioEntity toEntity(Usuario domain) {
         return new UsuarioEntity(

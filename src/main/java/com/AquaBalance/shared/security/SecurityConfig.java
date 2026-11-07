@@ -57,6 +57,7 @@ public class SecurityConfig {
                         // ── Públicas sin token ──────────────────────────────
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/api/network/**").permitAll()
 
                         // ── Usuarios: solo Admin ────────────────────────────
                         .requestMatchers("/api/usuarios/**")

@@ -4,9 +4,8 @@ import com.AquaBalance.user.domain.Rol;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
-// @Entity le dice a Spring que esta clase es una tabla en la base de datos
 @Entity
-@Table(name = "usuarios") // El nombre de la tabla en tu base de datos
+@Table(name = "usuarios")
 public class UsuarioEntity {
 
     @Id
@@ -47,7 +46,6 @@ public class UsuarioEntity {
         this.fechaCreacion = fechaCreacion;
     }
 
-    // --- GETTERS Y SETTERS ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

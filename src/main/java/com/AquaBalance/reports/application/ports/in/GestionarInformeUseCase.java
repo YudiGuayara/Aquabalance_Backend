@@ -11,7 +11,6 @@ public interface GestionarInformeUseCase {
     List<InformeResumen> listarInformes();
     InformeDetalle obtenerInforme(Long id);
 
-    // ── Clases de resultado ──────────────────────────────────
 
     class InformeResumen {
         private final Informe informe;

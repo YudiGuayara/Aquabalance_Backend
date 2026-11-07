@@ -24,12 +24,9 @@ public class Usuario {
 
     public Usuario() {}
 
-    // ── Lógica de negocio ─────────────────────────────────────
 
     public void desactivar() { this.activo = false; }
     public void activar()    { this.activo = true;  }
-
-    // ── Getters y Setters ─────────────────────────────────────
 
     public Long getId()                                    { return id; }
     public void setId(Long id)                             { this.id = id; }

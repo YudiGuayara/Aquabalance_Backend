@@ -28,7 +28,6 @@ public class EmailAdapter implements NotificacionEmailPort {
         this.mailSender = mailSender;
     }
 
-    // ── Notificaciones de eventos/alertas/informes (correo fijo) ─────────────
 
     @Override
     @Async
@@ -54,16 +53,15 @@ public class EmailAdapter implements NotificacionEmailPort {
             helper.setText(construirHtml(notificacion), true);
 
             mailSender.send(message);
-            System.out.println("✅ Email enviado exitosamente: "
+            System.out.println(" Email enviado exitosamente: "
                     + notificacion.getTitulo());
 
         } catch (MessagingException e) {
             e.printStackTrace();
-            System.err.println("❌ Error enviando email: " + e.getMessage());
+            System.err.println(" Error enviando email: " + e.getMessage());
         }
     }
 
-    // ── Bienvenida al usuario recién registrado (correo dinámico) ────────────
 
     @Async
     public void enviarBienvenida(String emailDestino, String nombre) {
@@ -83,19 +81,18 @@ public class EmailAdapter implements NotificacionEmailPort {
 
             helper.setFrom(remitente);
             helper.setTo(emailDestino);
-            helper.setSubject("💧 Bienvenido a AquaBalance, " + nombre + "!");
+            helper.setSubject(" Bienvenido a AquaBalance, " + nombre + "!");
             helper.setText(construirHtmlBienvenida(nombre, emailDestino), true);
 
             mailSender.send(message);
-            System.out.println("✅ Correo de bienvenida enviado a: " + emailDestino);
+            System.out.println(" Correo de bienvenida enviado a: " + emailDestino);
 
         } catch (MessagingException e) {
             e.printStackTrace();
-            System.err.println("❌ Error enviando bienvenida: " + e.getMessage());
+            System.err.println(" Error enviando bienvenida: " + e.getMessage());
         }
     }
 
-    // ── HTML notificación ─────────────────────────────────────────────────────
 
     private String construirHtml(Notificacion n) {
 
@@ -119,7 +116,7 @@ public class EmailAdapter implements NotificacionEmailPort {
                 <div style="background:linear-gradient(135deg,#0077b6,#023e8a);
                             padding:28px 32px">
                   <h1 style="color:white;margin:0;font-size:20px">
-                    💧 AquaBalance
+                     AquaBalance
                   </h1>
                   <p style="color:rgba(255,255,255,0.8);margin:6px 0 0;
                              font-size:13px">
@@ -153,7 +150,6 @@ public class EmailAdapter implements NotificacionEmailPort {
         );
     }
 
-    // ── HTML bienvenida ───────────────────────────────────────────────────────
 
     private String construirHtmlBienvenida(String nombre, String email) {
         return """
@@ -166,7 +162,7 @@ public class EmailAdapter implements NotificacionEmailPort {
                           box-shadow:0 4px 12px rgba(0,0,0,0.1)">
                 <div style="background:linear-gradient(135deg,#0077b6,#023e8a);
                             padding:28px 32px">
-                  <h1 style="color:white;margin:0;font-size:22px">💧 AquaBalance</h1>
+                  <h1 style="color:white;margin:0;font-size:22px"> AquaBalance</h1>
                   <p style="color:rgba(255,255,255,0.8);margin:6px 0 0;font-size:13px">
                     Sistema de Monitoreo Hídrico
                   </p>

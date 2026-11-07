@@ -45,15 +45,15 @@ public class NotificacionService implements GestionarNotificacionUseCase {
 
         // 3. Email solo si nivel es ALTA o MEDIA
         String nivel = notificacion.getNivel();
-        System.out.println("🔔 Notificación guardada: " + notificacion.getTitulo()
+        System.out.println(" Notificación guardada: " + notificacion.getTitulo()
                 + " | Nivel: " + nivel);
 
         if (nivel != null &&
                 (nivel.equalsIgnoreCase("ALTA") || nivel.equalsIgnoreCase("MEDIA"))) {
-            System.out.println("📤 Enviando email para nivel: " + nivel);
+            System.out.println(" Enviando email para nivel: " + nivel);
             emailPort.enviar(notificacion);
         } else {
-            System.out.println("⏭️  Nivel '" + nivel + "' no requiere email.");
+            System.out.println("⏭  Nivel '" + nivel + "' no requiere email.");
         }
     }
 
