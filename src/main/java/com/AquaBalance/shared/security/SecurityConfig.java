@@ -31,6 +31,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
 
@@ -63,6 +64,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/usuarios/**")
                         .hasRole("Administrador")
 
+
                         // ── Notificaciones: Admin y Operador ────────────────
                         .requestMatchers("/api/notificaciones/**")
                         .hasAnyRole("Administrador", "Operador")
@@ -94,11 +96,19 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.GET,
                                 "/api/informes/**")
                         .hasAnyRole("Administrador", "Operador", "UsuarioPublico")
+
                         .requestMatchers("/api/informes/**")
                         .hasAnyRole("Administrador", "Operador")
 
                         .requestMatchers("/api/reportes/**")
                         .hasRole("Administrador")
+
+                        // ── Estaciones de red (sensores) ────────────────────
+                        .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                "/api/estaciones/**")
+                        .hasAnyRole("Administrador", "Operador", "UsuarioPublico")
+                        .requestMatchers("/api/estaciones/**")
+                        .hasAnyRole("Administrador", "Operador")
 
                         // ── Todo lo demás requiere estar autenticado ─────────
                         .anyRequest().authenticated()
@@ -119,5 +129,6 @@ public class SecurityConfig {
             AuthenticationConfiguration config
     ) throws Exception {
         return config.getAuthenticationManager();
+
     }
 }
