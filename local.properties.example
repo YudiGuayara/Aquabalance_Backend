@@ -1,0 +1,20 @@
+# ── SOLO PARA TU PC. NO SUBIR A GIT NI DESPLEGAR. ──
+spring.datasource.url=jdbc:postgresql://ep-autumn-recipe-aqvjhsu1-pooler.c-8.us-east-1.aws.neon.tech/neondb?sslmode=require
+spring.datasource.username=neondb_owner
+spring.datasource.password=<la clave de Neon que ya tienes>
+
+spring.mail.username=karinaguayara592@gmail.com
+spring.mail.password=epbzguixitczjtco
+notificacion.email.destinatario=anacruzsolanilla@gmail.com
+
+jwt.secret=<el jwt.secret que ya tienes>
+
+app.frontend-url=http://localhost:4200
+
+# Solo se usan si en la BD todavia no existe ningun administrador
+admin.nombre=Administrador
+admin.email=fredy
+admin.password=<la contraseña de administrador que ya tienes>
+
+# Vacío = acceso de sensores por clave deshabilitado
+sensores.api-key=

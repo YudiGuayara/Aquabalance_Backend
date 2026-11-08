@@ -1,0 +1,15 @@
+package com.AquaBalance.user.domain;
+
+import java.util.List;
+import java.util.Optional;
+
+public interface UsuarioRepository {
+
+    Usuario           save(Usuario usuario);
+    Optional<Usuario> findById(Long id);
+    Optional<Usuario> findByEmail(String email);
+    List<Usuario>     findAllActivos();
+    List<Usuario>     findAll();
+    void              delete(Usuario usuario); // ← nuevo
+    boolean           existsByRol(Rol rol);
+}
