@@ -68,6 +68,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserDetails userDetails =
                         userDetailsService.loadUserByUsername(email);
 
+                if (!userDetails.isEnabled()) {
+                    logger.warn("JWT rechazado en " + path + ": cuenta no habilitada (inactiva o correo sin verificar) -> " + email);
+                } else if (!jwtService.isTokenValid(jwt, userDetails)) {
+                    logger.warn("JWT rechazado en " + path + ": token vencido o no corresponde al usuario -> " + email);
+                }
+
                 if (userDetails.isEnabled() && jwtService.isTokenValid(jwt, userDetails)) {
 
                     UsernamePasswordAuthenticationToken authToken =
@@ -87,6 +93,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
 
         } catch (Exception e) {
+            // Sin este log no hay forma de saber si fue firma invalida, token vencido o usuario inexistente
+            logger.warn("JWT rechazado en " + path + ": " + e.getClass().getSimpleName() + " - " + e.getMessage());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }

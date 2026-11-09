@@ -20,6 +20,10 @@ public class JwtService {
     @Value("${jwt.secret}")
     private String secretKey;
 
+    // Duracion del token en ms (por defecto 7 dias). Configurable con JWT_EXPIRATION_MS.
+    @Value("${jwt.expiration-ms:604800000}")
+    private long expirationMs;
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
@@ -28,7 +32,7 @@ public class JwtService {
         return Jwts.builder()
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24))
+                .expiration(new Date(System.currentTimeMillis() + expirationMs))
                 .signWith(getSignKey())
                 .compact();
     }
