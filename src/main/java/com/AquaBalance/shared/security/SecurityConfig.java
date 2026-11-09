@@ -53,6 +53,10 @@ public class SecurityConfig {
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/api/network/**").permitAll()
 
+                        // Spring redirige internamente los errores (403, 404, 500) a /error;
+                        // si no es publico, un 403 llega al cliente como 401 y cierra la sesion
+                        .requestMatchers("/error").permitAll()
+
                         // ── Usuarios: solo Admin ────────────────────────────
                         .requestMatchers("/api/usuarios/**")
                         .hasRole("Administrador")
