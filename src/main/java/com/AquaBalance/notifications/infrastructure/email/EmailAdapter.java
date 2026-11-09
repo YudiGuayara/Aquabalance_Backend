@@ -1,5 +1,6 @@
 package com.AquaBalance.notifications.infrastructure.email;
 
+import com.AquaBalance.notifications.application.ports.out.DestinatariosAlertaPort;
 import com.AquaBalance.notifications.application.ports.out.NotificacionEmailPort;
 import com.AquaBalance.notifications.domain.Notificacion;
 import jakarta.mail.MessagingException;
@@ -17,6 +18,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 @Component
 public class EmailAdapter implements NotificacionEmailPort {
@@ -24,6 +29,7 @@ public class EmailAdapter implements NotificacionEmailPort {
     private static final Logger log = LoggerFactory.getLogger(EmailAdapter.class);
 
     private final JavaMailSender mailSender;
+    private final DestinatariosAlertaPort destinatariosAlerta;
 
     @Value("${spring.mail.username}")
     private String remitente;
@@ -49,8 +55,9 @@ public class EmailAdapter implements NotificacionEmailPort {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
-    public EmailAdapter(JavaMailSender mailSender) {
+    public EmailAdapter(JavaMailSender mailSender, DestinatariosAlertaPort destinatariosAlerta) {
         this.mailSender = mailSender;
+        this.destinatariosAlerta = destinatariosAlerta;
     }
 
 
@@ -58,22 +65,55 @@ public class EmailAdapter implements NotificacionEmailPort {
     @Async
     public void enviar(Notificacion notificacion) {
 
-        log.debug("EmailAdapter.enviar() — habilitado={} | destinatario={} | nivel={}", habilitado, destinatario, notificacion.getNivel());
-
         if (!habilitado) {
             log.warn("Email deshabilitado en configuración (notificacion.email.habilitado=false).");
             return;
         }
 
-        try {
-            despachar(destinatario,
-                    "🚨 AquaBalance — " + notificacion.getTitulo(),
-                    construirHtml(notificacion));
-            log.info("Email enviado: {}", notificacion.getTitulo());
+        List<String> destinos = resolverDestinatarios();
+        log.debug("EmailAdapter.enviar() — destinatarios={} | nivel={}", destinos.size(), notificacion.getNivel());
 
-        } catch (MessagingException | org.springframework.mail.MailException e) {
-            log.error("Error enviando email '{}': {}", notificacion.getTitulo(), e.getMessage(), e);
+        if (destinos.isEmpty()) {
+            log.warn("La alerta '{}' no se envió por correo: no hay operadores activos con cuenta verificada "
+                    + "ni NOTIFICACION_EMAIL_DESTINATARIO configurado.", notificacion.getTitulo());
+            return;
         }
+
+        String asunto = "🚨 AquaBalance — " + notificacion.getTitulo();
+        String html   = construirHtml(notificacion);
+
+        // Un correo por persona: así nadie ve las direcciones de los demás operadores
+        for (String destino : destinos) {
+            try {
+                despachar(destino, asunto, html);
+                log.info("Email enviado a {}: {}", destino, notificacion.getTitulo());
+            } catch (MessagingException | org.springframework.mail.MailException e) {
+                log.error("Error enviando email '{}' a {}: {}", notificacion.getTitulo(), destino, e.getMessage(), e);
+            }
+        }
+    }
+
+    /** Operadores activos y verificados, más la dirección fija opcional de NOTIFICACION_EMAIL_DESTINATARIO. */
+    private List<String> resolverDestinatarios() {
+        Set<String> destinos = new LinkedHashSet<>();
+
+        if (destinatariosAlerta != null) {
+            try {
+                List<String> operadores = destinatariosAlerta.emailsDeOperadores();
+                if (operadores != null) {
+                    for (String email : operadores) {
+                        if (email != null && !email.isBlank()) destinos.add(email.trim());
+                    }
+                }
+            } catch (RuntimeException e) {
+                log.error("No se pudo consultar a los operadores para enviar la alerta: {}", e.getMessage());
+            }
+        }
+
+        if (destinatario != null && !destinatario.isBlank()) {
+            destinos.add(destinatario.trim());
+        }
+        return new ArrayList<>(destinos);
     }
 
 

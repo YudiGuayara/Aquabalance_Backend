@@ -7,12 +7,15 @@ import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import com.AquaBalance.notifications.application.ports.out.DestinatariosAlertaPort;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.util.List;
 import java.util.Properties;
 import jakarta.mail.Session;
 
@@ -26,6 +29,9 @@ class EmailAdapterTest {
 
     @Mock
     private JavaMailSender mailSender;
+
+    @Mock
+    private DestinatariosAlertaPort destinatariosAlerta;
 
     @InjectMocks
     private EmailAdapter emailAdapter;
@@ -105,5 +111,63 @@ class EmailAdapterTest {
         verify(mailSender).send(mimeMessage);
         // ← nivel null → sin emoji
         assertThat(mimeMessage.getSubject()).isEqualTo("🚨 AquaBalance — Notificación sin nivel");
+    }
+
+    @Test
+    @DisplayName("Debe enviar un correo separado a cada operador")
+    void debeEnviarUnCorreoPorOperador() throws Exception {
+        ReflectionTestUtils.setField(emailAdapter, "remitente", "origen@aqua.com");
+        ReflectionTestUtils.setField(emailAdapter, "destinatario", "");
+        ReflectionTestUtils.setField(emailAdapter, "habilitado", true);
+
+        when(destinatariosAlerta.emailsDeOperadores())
+                .thenReturn(List.of("op1@aqua.com", "op2@aqua.com"));
+        when(mailSender.createMimeMessage())
+                .thenAnswer(inv -> new MimeMessage(Session.getInstance(new Properties())));
+
+        emailAdapter.enviar(new Notificacion("Sistema", "Nivel crítico", "Detalle", "ALTA"));
+
+        ArgumentCaptor<MimeMessage> captor = ArgumentCaptor.forClass(MimeMessage.class);
+        verify(mailSender, times(2)).send(captor.capture());
+
+        List<MimeMessage> enviados = captor.getAllValues();
+        for (MimeMessage m : enviados) {
+            assertThat(m.getAllRecipients()).hasSize(1);
+        }
+        assertThat(enviados.stream().map(m -> {
+            try { return m.getAllRecipients()[0].toString(); }
+            catch (Exception e) { throw new IllegalStateException(e); }
+        }).toList()).containsExactlyInAnyOrder("op1@aqua.com", "op2@aqua.com");
+    }
+
+    @Test
+    @DisplayName("Debe sumar la dirección fija a los operadores sin repetirla")
+    void debeSumarDireccionFijaSinRepetir() throws Exception {
+        ReflectionTestUtils.setField(emailAdapter, "remitente", "origen@aqua.com");
+        ReflectionTestUtils.setField(emailAdapter, "destinatario", "jefe@aqua.com");
+        ReflectionTestUtils.setField(emailAdapter, "habilitado", true);
+
+        when(destinatariosAlerta.emailsDeOperadores())
+                .thenReturn(List.of("op1@aqua.com", "jefe@aqua.com"));
+        when(mailSender.createMimeMessage())
+                .thenAnswer(inv -> new MimeMessage(Session.getInstance(new Properties())));
+
+        emailAdapter.enviar(new Notificacion("Sistema", "Nivel crítico", "Detalle", "ALTA"));
+
+        verify(mailSender, times(2)).send(any(MimeMessage.class));
+    }
+
+    @Test
+    @DisplayName("No debe enviar nada si no hay operadores ni dirección fija")
+    void noDebeEnviarSinDestinatarios() {
+        ReflectionTestUtils.setField(emailAdapter, "remitente", "origen@aqua.com");
+        ReflectionTestUtils.setField(emailAdapter, "destinatario", "");
+        ReflectionTestUtils.setField(emailAdapter, "habilitado", true);
+
+        when(destinatariosAlerta.emailsDeOperadores()).thenReturn(List.of());
+
+        emailAdapter.enviar(new Notificacion("Sistema", "Nivel crítico", "Detalle", "ALTA"));
+
+        verifyNoInteractions(mailSender);
     }
 }
