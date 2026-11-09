@@ -15,6 +15,23 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/network")
+public class NetworkController package com.AquaBalance.shared.network;
+
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.Map;
+
+/**
+ * Endpoint ligero para medir la latencia y el estado de la conexión
+ * entre el cliente y el servidor. Es público (no requiere token).
+ */
+@RestController
+@RequestMapping("/api/network")
 public class NetworkController {
 
     @GetMapping("/ping")
@@ -22,7 +39,8 @@ public class NetworkController {
         Map<String, Object> body = Map.of(
                 "status", "ok",
                 "timestamp", System.currentTimeMillis(),
-                "clientIp", obtenerIpCliente(request)
+                "clientIp", obtenerIpCliente(request),
+                "build", "2026-11-09-b"
         );
 
         // Sin caché: cada medición debe viajar realmente por la red
